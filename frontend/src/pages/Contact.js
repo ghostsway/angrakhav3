@@ -67,7 +67,7 @@ export default function Contact() {
           <div>
             <h2 className="font-serif text-2xl font-light text-foreground mb-6">Our Atelier</h2>
             <div className="aspect-[4/3] mb-8 img-zoom">
-              <img src="https://images.unsplash.com/photo-1524227489942-c14a3dc8422c?crop=entropy&cs=srgb&fm=jpg&q=85&w=800" alt="Vaayu Atelier" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1524227489942-c14a3dc8422c?crop=entropy&cs=srgb&fm=jpg&q=85&w=800" alt="Angarakha Store" className="w-full h-full object-cover" />
             </div>
             <div className="space-y-5">
               <div className="flex items-start gap-3">
@@ -88,14 +88,7 @@ export default function Contact() {
                 <Phone className="w-4 h-4 text-primary mt-1 shrink-0" />
                 <div>
                   <p className="text-xs font-sans uppercase tracking-[0.2em] text-primary mb-1">Phone</p>
-                  <a href="tel:+919829012345" className="text-sm font-sans text-muted-foreground hover:text-primary transition-colors">+91 98290 12345</a>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Mail className="w-4 h-4 text-primary mt-1 shrink-0" />
-                <div>
-                  <p className="text-xs font-sans uppercase tracking-[0.2em] text-primary mb-1">Email</p>
-                  <a href="mailto:appointments@vaayuethnics.in" className="text-sm font-sans text-muted-foreground hover:text-primary transition-colors">appointments@vaayuethnics.in</a>
+                  <a href="tel:+919828541068" className="text-sm font-sans text-muted-foreground hover:text-primary transition-colors">+91 98285 41068</a>
                 </div>
               </div>
             </div>

@@ -15,7 +15,7 @@ const LEGAL_PAGES = {
     content: [
       { heading: 'Return Policy', body: 'We accept returns within 14 days of delivery for unused items in their original packaging with all tags attached. Items must be unworn, unwashed, and free from any alterations.' },
       { heading: 'Non-Returnable Items', body: 'Custom-made garments, altered pieces, and items marked as final sale are non-returnable. Accessories including pocket squares and stoles are non-returnable for hygiene reasons.' },
-      { heading: 'How to Return', body: 'To initiate a return, please contact us at returns@vaayuethnics.in or call +91 98290 12345. We will arrange a pickup from your address at no additional cost.' },
+      { heading: 'How to Return', body: 'To initiate a return, please contact us at +91 98285 41068. We will arrange a pickup from your address at no additional cost.' },
       { heading: 'Refund Processing', body: 'Refunds are processed within 7 business days of receiving the returned item. The amount will be credited to your original payment method.' },
     ]
   },
@@ -31,10 +31,10 @@ const LEGAL_PAGES = {
   terms: {
     title: 'Terms of Service',
     content: [
-      { heading: 'Acceptance of Terms', body: 'By accessing and using vaayuethnics.in, you agree to be bound by these terms. If you do not agree, please do not use our services.' },
+      { heading: 'Acceptance of Terms', body: 'By accessing and using this website, you agree to be bound by these terms. If you do not agree, please do not use our services.' },
       { heading: 'Products & Pricing', body: 'All prices are listed in Indian Rupees (INR) and are inclusive of applicable taxes unless stated otherwise. We reserve the right to modify prices without prior notice. Prices at the time of order placement will be honoured.' },
       { heading: 'Order Acceptance', body: 'Placing an order constitutes an offer to purchase. We reserve the right to accept or decline any order. In case of stock unavailability after order placement, we will notify you and process a full refund.' },
-      { heading: 'Intellectual Property', body: 'All content on this website including images, text, designs, and logos are the property of Vaayu Ethnics and are protected by copyright laws. Unauthorized use is prohibited.' },
+      { heading: 'Intellectual Property', body: 'All content on this website including images, text, designs, and logos are the property of Angarakha and are protected by copyright laws. Unauthorized use is prohibited.' },
     ]
   },
 };
@@ -66,7 +66,7 @@ export default function Legal() {
         </div>
         <div className="mt-12 pt-8 border-t border-brand-border">
           <p className="text-xs font-sans text-muted-foreground">
-            Last updated: February 2026. For questions, contact us at <a href="mailto:legal@vaayuethnics.in" className="text-primary hover:underline">legal@vaayuethnics.in</a>
+            Last updated: March 2026. For questions, contact us at +91 98285 41068 or visit our store.
           </p>
         </div>
       </div>

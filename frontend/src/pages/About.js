@@ -24,7 +24,7 @@ export default function About() {
               <p className="text-xs font-sans uppercase tracking-[0.2em] text-primary mb-4">Heritage</p>
               <h2 className="font-serif text-3xl sm:text-4xl font-light text-foreground mb-6 leading-tight">Born in the Heart of Jaipur</h2>
               <p className="text-base font-sans font-light text-muted-foreground leading-relaxed mb-4">
-                Vaayu was born from a simple conviction: that Indian ceremonial menswear deserves the same quiet confidence that defines the best of global fashion. No excess, no noise — just impeccable craft and thoughtful design.
+                Angarakha was born from a simple conviction: that Indian ethnic wear deserves the same quiet confidence that defines the best of global fashion. No excess, no noise — just impeccable craft and thoughtful design.
               </p>
               <p className="text-base font-sans font-light text-muted-foreground leading-relaxed">
                 Our atelier sits in the historic lanes of Johari Bazaar, Jaipur, where generations of textile merchants and artisans have shaped India's sartorial identity. This is where we source, design, and bring each garment to life.
@@ -70,7 +70,7 @@ export default function About() {
 
         {/* CTA */}
         <section className="text-center mb-16">
-          <h2 className="font-serif text-2xl sm:text-3xl font-light text-foreground mb-6">Experience Vaayu</h2>
+          <h2 className="font-serif text-2xl sm:text-3xl font-light text-foreground mb-6">Experience Angarakha</h2>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/collections" className="bg-primary text-primary-foreground px-8 py-3 text-xs font-sans uppercase tracking-[0.2em] hover:bg-primary/90 transition-all" data-testid="about-cta-collections">
               Explore Collections

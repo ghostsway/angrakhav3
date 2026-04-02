@@ -71,7 +71,7 @@ export default function Checkout() {
         <h1 className="font-serif text-3xl sm:text-4xl font-light text-foreground mb-3">Order Confirmed</h1>
         <p className="text-sm font-sans text-muted-foreground mb-2">Order number: <span className="text-primary font-medium">{orderComplete.order_number}</span></p>
         <p className="text-sm font-sans text-muted-foreground mb-8">
-          A confirmation has been sent to {orderComplete.guest_email}. Thank you for choosing Vaayu.
+          A confirmation has been sent to {orderComplete.guest_email}. Thank you for choosing Angarakha.
         </p>
         <div className="bg-brand-surface border border-brand-border p-6 mb-8 text-left">
           <h3 className="text-xs font-sans uppercase tracking-[0.2em] text-primary mb-4">Order Summary</h3>
