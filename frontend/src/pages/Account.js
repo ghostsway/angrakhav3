@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Package, MapPin, LogOut, RotateCcw, RefreshCw, Gift, Users } from 'lucide-react';
+import { User, Package, MapPin, LogOut, RotateCcw, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -14,7 +14,6 @@ export default function Account() {
   const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [returns, setReturns] = useState([]);
-  const [referral, setReferral] = useState(null);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [activeTab, setActiveTab] = useState('orders');
   const [editProfile, setEditProfile] = useState(false);
@@ -36,13 +35,11 @@ export default function Account() {
     Promise.all([
       axios.get(`${API}/orders`, { withCredentials: true }),
       axios.get(`${API}/addresses`, { withCredentials: true }),
-      axios.get(`${API}/returns`, { withCredentials: true }),
-      axios.get(`${API}/referral`, { withCredentials: true })
-    ]).then(([oRes, aRes, rRes, refRes]) => {
+      axios.get(`${API}/returns`, { withCredentials: true })
+    ]).then(([oRes, aRes, rRes]) => {
       setOrders(oRes.data.orders || []);
       setAddresses(aRes.data.addresses || []);
       setReturns(rRes.data.returns || []);
-      setReferral(refRes.data);
     }).catch(() => {}).finally(() => setLoadingOrders(false));
   }, [user]);
 
@@ -99,7 +96,6 @@ export default function Account() {
     { key: 'orders', label: 'Orders', icon: Package },
     { key: 'addresses', label: 'Addresses', icon: MapPin },
     { key: 'returns', label: 'Returns', icon: RotateCcw },
-    { key: 'referral', label: 'Referral', icon: Users },
     { key: 'profile', label: 'Profile', icon: User },
   ];
 
@@ -242,27 +238,6 @@ export default function Account() {
             ) : (
               <div className="text-center py-12"><RotateCcw className="w-10 h-10 text-muted-foreground mx-auto mb-4" strokeWidth={1} /><p className="text-sm font-sans text-muted-foreground">No return requests.</p></div>
             )}
-          </div>
-        )}
-
-        {/* Referral Tab */}
-        {activeTab === 'referral' && referral && (
-          <div data-testid="referral-section" className="max-w-lg">
-            <h2 className="font-serif text-xl font-light text-foreground mb-6">Refer a Friend</h2>
-            <div className="bg-brand-surface border border-brand-border p-6 text-center">
-              <Gift className="w-10 h-10 text-primary mx-auto mb-4" strokeWidth={1.5} />
-              <p className="text-sm font-sans text-muted-foreground mb-4">Share your referral code and both you and your friend get 10% off!</p>
-              <div className="bg-brand-bg border border-brand-border p-4 mb-4">
-                <p className="text-xs font-sans text-muted-foreground mb-1">Your referral code</p>
-                <p className="font-mono text-2xl text-primary font-bold tracking-widest" data-testid="referral-code">{referral.code}</p>
-              </div>
-              <button onClick={() => { navigator.clipboard.writeText(referral.code); toast.success('Code copied!'); }}
-                className="bg-primary text-primary-foreground px-6 py-2.5 text-xs font-sans uppercase tracking-[0.2em]">Copy Code</button>
-              <div className="mt-6 grid grid-cols-2 gap-4 text-center">
-                <div className="bg-brand-bg p-3 border border-brand-border"><p className="text-xl font-serif text-primary">{referral.total_referrals}</p><p className="text-[10px] font-sans text-muted-foreground uppercase tracking-wider">Referrals</p></div>
-                <div className="bg-brand-bg p-3 border border-brand-border"><p className="text-xl font-serif text-primary">{referral.successful_referrals}</p><p className="text-[10px] font-sans text-muted-foreground uppercase tracking-wider">Successful</p></div>
-              </div>
-            </div>
           </div>
         )}
 

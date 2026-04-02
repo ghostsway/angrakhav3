@@ -1521,11 +1521,10 @@ from routes.inventory import router as inventory_router
 from routes.returns import router as returns_router
 from routes.abandoned_cart import router as abandoned_router
 from routes.giftcards import router as giftcards_router
-from routes.referral import router as referral_router
 
 # Set DB and helpers for all sub-routers
-from routes import wishlist, addresses, profile, search_enhanced, inventory, returns, abandoned_cart, giftcards, referral
-for mod in [wishlist, addresses, profile, search_enhanced, inventory, returns, abandoned_cart, giftcards, referral]:
+from routes import wishlist, addresses, profile, search_enhanced, inventory, returns, abandoned_cart, giftcards
+for mod in [wishlist, addresses, profile, search_enhanced, inventory, returns, abandoned_cart, giftcards]:
     mod.set_db(db)
 
 wishlist.set_helpers(get_current_user, require_user)
@@ -1538,8 +1537,6 @@ abandoned_cart.set_admin_helper(require_admin)
 abandoned_cart.set_email_config(RESEND_ENABLED, send_abandoned_cart_email)
 giftcards.set_helpers(require_user)
 giftcards.set_admin_helper(require_admin)
-referral.set_helpers(require_user)
-referral.set_admin_helper(require_admin)
 
 app.include_router(wishlist_router)
 app.include_router(addresses_router)
@@ -1549,7 +1546,6 @@ app.include_router(inventory_router)
 app.include_router(returns_router)
 app.include_router(abandoned_router)
 app.include_router(giftcards_router)
-app.include_router(referral_router)
 
 # ─── App Setup ─────────────────────────────────────────────────────────────────
 
@@ -1578,8 +1574,6 @@ async def startup():
     await db.addresses.create_index("user_id")
     await db.returns.create_index("user_id")
     await db.giftcards.create_index("code", unique=True)
-    await db.referrals.create_index("user_id", unique=True)
-    await db.referrals.create_index("code", unique=True)
 
 @app.on_event("shutdown")
 async def shutdown():

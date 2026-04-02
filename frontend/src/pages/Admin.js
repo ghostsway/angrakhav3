@@ -23,7 +23,6 @@ const TABS = [
   { id: 'returns', label: 'Returns', icon: RotateCcw },
   { id: 'abandoned', label: 'Abandoned Carts', icon: AlertTriangle },
   { id: 'giftcards', label: 'Gift Cards', icon: Gift },
-  { id: 'referrals', label: 'Referrals', icon: UserPlus },
   { id: 'enquiries', label: 'Enquiries', icon: MessageSquare },
   { id: 'customers', label: 'Customers', icon: Users },
   { id: 'newsletter', label: 'Newsletter', icon: Newspaper },
@@ -864,7 +863,6 @@ export default function Admin() {
           {activeTab === 'returns' && <ReturnsAdminTab />}
           {activeTab === 'abandoned' && <AbandonedCartsTab />}
           {activeTab === 'giftcards' && <GiftCardsAdminTab />}
-          {activeTab === 'referrals' && <ReferralsAdminTab />}
           {activeTab === 'enquiries' && <EnquiriesTab />}
           {activeTab === 'customers' && <CustomersTab />}
           {activeTab === 'newsletter' && <NewsletterTab />}
@@ -873,6 +871,7 @@ export default function Admin() {
       </main>
     </div>
   );
+}
 
 // ─── Coupons Tab ──────────────────────────────────────────────────────────────
 
@@ -1328,35 +1327,4 @@ function GiftCardsAdminTab() {
       )}
     </div>
   );
-}
-
-// ─── Referrals Admin Tab ───────────────────────────────────────────────────────
-function ReferralsAdminTab() {
-  const [referrals, setReferrals] = useState([]);
-  useEffect(() => { axios.get(`${API}/admin/referrals`, { withCredentials: true }).then(r => setReferrals(r.data.referrals || [])).catch(() => {}); }, []);
-  return (
-    <div data-testid="admin-referrals">
-      <h2 className="font-serif text-xl font-light text-foreground mb-6">Referral Program</h2>
-      {referrals.length === 0 ? <p className="text-center py-12 text-muted-foreground">No referrals yet.</p> : (
-        <div className="overflow-x-auto"><table className="w-full text-sm font-sans">
-          <thead><tr className="border-b border-brand-border text-left">
-            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">User</th>
-            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Code</th>
-            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Referrals</th>
-            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Successful</th>
-          </tr></thead>
-          <tbody>{referrals.map(r => (
-            <tr key={r.referral_id} className="border-b border-brand-border/50">
-              <td className="py-3"><p className="text-foreground">{r.user_name}</p><p className="text-xs text-muted-foreground">{r.user_email}</p></td>
-              <td className="py-3 text-primary font-mono">{r.code}</td>
-              <td className="py-3 text-foreground">{r.total_referrals}</td>
-              <td className="py-3 text-foreground">{r.successful_referrals}</td>
-            </tr>
-          ))}</tbody>
-        </table></div>
-      )}
-    </div>
-  );
-}
-
 }
