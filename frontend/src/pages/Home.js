@@ -6,6 +6,9 @@ import axios from 'axios';
 import { ArrowDown, MapPin, Clock, Phone, Mail, Send, Sparkles, Truck, CalendarDays } from 'lucide-react';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { toast } from 'sonner';
+import TrustBadges from '@/components/TrustBadges';
+import RecentlyViewed from '@/components/RecentlyViewed';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -23,6 +26,7 @@ export default function Home() {
   const [enquiry, setEnquiry] = useState({ name: '', phone: '', occasion: '', preferred_date: '', message: '' });
   const [newsletter, setNewsletter] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { items: recentItems } = useRecentlyViewed();
 
   // CMS-driven content
   const [hero, setHero] = useState(null);
@@ -320,6 +324,16 @@ export default function Home() {
           </button>
         </form>
       </section>
+
+      {/* ─── Trust Badges ─── */}
+      <section className="py-12 lg:py-16 border-t border-brand-border" data-testid="trust-section">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <TrustBadges />
+        </div>
+      </section>
+
+      {/* ─── Recently Viewed ─── */}
+      <RecentlyViewed items={recentItems} />
 
       {/* ─── Newsletter ─── */}
       <section className="py-16 lg:py-20 bg-brand-surface border-t border-brand-border" data-testid="newsletter-section">

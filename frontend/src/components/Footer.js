@@ -31,8 +31,10 @@ export default function Footer() {
             <nav className="flex flex-col gap-3">
               <Link to="/about" className="text-sm font-sans text-muted-foreground hover:text-foreground transition-colors" data-testid="footer-about">Our Story</Link>
               <Link to="/contact" className="text-sm font-sans text-muted-foreground hover:text-foreground transition-colors" data-testid="footer-contact">Contact</Link>
+              <Link to="/gift-cards" className="text-sm font-sans text-muted-foreground hover:text-foreground transition-colors" data-testid="footer-giftcards">Gift Cards</Link>
+              <Link to="/sale" className="text-sm font-sans text-muted-foreground hover:text-foreground transition-colors" data-testid="footer-sale">Sale & Clearance</Link>
+              <Link to="/returns" className="text-sm font-sans text-muted-foreground hover:text-foreground transition-colors" data-testid="footer-returns">Returns & Exchanges</Link>
               <Link to="/legal/shipping" className="text-sm font-sans text-muted-foreground hover:text-foreground transition-colors">Shipping Policy</Link>
-              <Link to="/legal/returns" className="text-sm font-sans text-muted-foreground hover:text-foreground transition-colors">Returns & Exchanges</Link>
               <Link to="/legal/privacy" className="text-sm font-sans text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link>
               <Link to="/legal/terms" className="text-sm font-sans text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link>
             </nav>

@@ -837,7 +837,7 @@ async def create_review(product_slug: str, data: ReviewCreate, request: Request)
 # ─── Search ────────────────────────────────────────────────────────────────────
 
 @api_router.get("/search")
-async def search_products(q: str = "", occasion: Optional[str] = None, category: Optional[str] = None, page: int = 1, limit: int = 12):
+async def search_products(q: str = "", occasion: Optional[str] = None, category: Optional[str] = None, sort: Optional[str] = "featured", page: int = 1, limit: int = 12):
     query = {"in_stock": True}
     if q:
         query["$or"] = [
@@ -851,9 +851,13 @@ async def search_products(q: str = "", occasion: Optional[str] = None, category:
         query["occasions"] = {"$in": [occasion]}
     if category:
         query["category"] = category
+    sort_field = [("created_at", -1)]
+    if sort == "price_asc": sort_field = [("price", 1)]
+    elif sort == "price_desc": sort_field = [("price", -1)]
+    elif sort == "newest": sort_field = [("created_at", -1)]
     skip = (page - 1) * limit
     total = await db.products.count_documents(query)
-    products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
+    products = await db.products.find(query, {"_id": 0}).sort(sort_field).skip(skip).limit(limit).to_list(limit)
     return {"products": products, "total": total, "page": page, "pages": max(1, (total + limit - 1) // limit)}
 
 # ─── Mock Payment ──────────────────────────────────────────────────────────────
@@ -1277,6 +1281,8 @@ SEED_PRODUCTS = [
         "occasions": ["wedding"], "sizes": ["S", "M", "L", "XL", "XXL"],
         "tags": ["wedding", "sherwani", "bestseller", "new"], "in_stock": True, "featured": True,
         "care": "Dry clean only. Store in garment bag.", "lining": "Satin",
+        "size_stock": {"S": 5, "M": 8, "L": 10, "XL": 6, "XXL": 3},
+        "badges": ["bestseller", "new"],
         "created_at": datetime.now(timezone.utc).isoformat()
     },
     {
@@ -1287,6 +1293,9 @@ SEED_PRODUCTS = [
         "category": "sherwani", "fabric": "Dupion Silk", "color": "Indigo", "fit": "Slim",
         "occasions": ["wedding", "festive"], "sizes": ["S", "M", "L", "XL"],
         "tags": ["wedding", "sherwani", "new"], "in_stock": True, "featured": True,
+        "size_stock": {"S": 3, "M": 7, "L": 6, "XL": 4},
+        "badges": ["new"],
+        "care": "Dry clean only. Store away from direct sunlight.",
         "created_at": datetime.now(timezone.utc).isoformat()
     },
     {
@@ -1297,6 +1306,9 @@ SEED_PRODUCTS = [
         "category": "sherwani", "fabric": "Banarasi Brocade", "color": "Gold", "fit": "Regular",
         "occasions": ["wedding"], "sizes": ["M", "L", "XL", "XXL"],
         "tags": ["wedding", "sherwani", "premium"], "in_stock": True, "featured": True,
+        "size_stock": {"M": 4, "L": 5, "XL": 3, "XXL": 2},
+        "badges": ["bestseller"],
+        "care": "Dry clean only. Keep in muslin cover. Avoid folding on zari work.",
         "created_at": datetime.now(timezone.utc).isoformat()
     },
     {
@@ -1307,6 +1319,9 @@ SEED_PRODUCTS = [
         "category": "kurta", "fabric": "Chanderi Silk", "color": "Powder Blue", "fit": "Relaxed",
         "occasions": ["festive", "casual"], "sizes": ["S", "M", "L", "XL", "XXL"],
         "tags": ["festive", "kurta", "new"], "in_stock": True, "featured": True,
+        "size_stock": {"S": 8, "M": 12, "L": 10, "XL": 6, "XXL": 4},
+        "badges": ["new"],
+        "care": "Gentle hand wash in cold water or dry clean. Air dry in shade.",
         "created_at": datetime.now(timezone.utc).isoformat()
     },
     {
@@ -1317,6 +1332,9 @@ SEED_PRODUCTS = [
         "category": "kurta", "fabric": "Handloom Cotton", "color": "Ecru", "fit": "Relaxed",
         "occasions": ["casual"], "sizes": ["S", "M", "L", "XL", "XXL"],
         "tags": ["casual", "kurta", "everyday"], "in_stock": True, "featured": False,
+        "size_stock": {"S": 10, "M": 15, "L": 12, "XL": 8, "XXL": 5},
+        "badges": [],
+        "care": "Machine washable. Gentle cycle with similar colours.",
         "created_at": datetime.now(timezone.utc).isoformat()
     },
     {
@@ -1327,6 +1345,9 @@ SEED_PRODUCTS = [
         "category": "kurta", "fabric": "Banarasi Silk", "color": "Burgundy", "fit": "Regular",
         "occasions": ["festive", "wedding"], "sizes": ["S", "M", "L", "XL"],
         "tags": ["festive", "kurta", "set", "new"], "in_stock": True, "featured": True,
+        "size_stock": {"S": 5, "M": 8, "L": 7, "XL": 4},
+        "badges": ["new"],
+        "care": "Dry clean recommended. Store flat to preserve brocade.",
         "created_at": datetime.now(timezone.utc).isoformat()
     },
     {
@@ -1337,6 +1358,9 @@ SEED_PRODUCTS = [
         "category": "bandhgala", "fabric": "Wool Blend", "color": "Black", "fit": "Tailored",
         "occasions": ["wedding", "festive"], "sizes": ["S", "M", "L", "XL", "XXL"],
         "tags": ["wedding", "festive", "bandhgala", "bestseller"], "in_stock": True, "featured": True,
+        "size_stock": {"S": 6, "M": 10, "L": 8, "XL": 5, "XXL": 3},
+        "badges": ["bestseller"],
+        "care": "Dry clean only. Hang on padded hanger to maintain shape.",
         "created_at": datetime.now(timezone.utc).isoformat()
     },
     {
@@ -1347,6 +1371,9 @@ SEED_PRODUCTS = [
         "category": "bandhgala", "fabric": "Wool", "color": "Navy", "fit": "Slim",
         "occasions": ["festive", "casual"], "sizes": ["M", "L", "XL"],
         "tags": ["festive", "casual", "bandhgala"], "in_stock": True, "featured": False,
+        "size_stock": {"M": 7, "L": 5, "XL": 2},
+        "badges": [],
+        "care": "Dry clean only. Use cedar blocks to prevent moths.",
         "created_at": datetime.now(timezone.utc).isoformat()
     },
     {
@@ -1357,6 +1384,9 @@ SEED_PRODUCTS = [
         "category": "jodhpuri", "fabric": "Cotton-Silk Blend", "color": "Maroon", "fit": "Tailored",
         "occasions": ["wedding", "festive"], "sizes": ["S", "M", "L", "XL"],
         "tags": ["wedding", "jodhpuri", "premium", "new"], "in_stock": True, "featured": True,
+        "size_stock": {"S": 3, "M": 5, "L": 4, "XL": 2},
+        "badges": ["new"],
+        "care": "Dry clean only. Store in garment bag.",
         "created_at": datetime.now(timezone.utc).isoformat()
     },
     {
@@ -1445,6 +1475,82 @@ async def seed_database():
     else:
         logger.info(f"Database already has {count} products, skipping seed.")
 
+# ─── Abandoned Cart Email ──────────────────────────────────────────────────────
+
+async def send_abandoned_cart_email(email, name, items):
+    """Send abandoned cart recovery email"""
+    try:
+        if not RESEND_ENABLED:
+            logger.info(f"[MOCK EMAIL] Abandoned cart reminder to {email}")
+            return False
+        items_html = ""
+        for item in items:
+            items_html += f"""<tr><td style="padding:10px;border-bottom:1px solid #eee;">
+                <strong>{item.get('name','')}</strong><br/>
+                <span style="color:#666;font-size:14px;">Size: {item.get('size','')} | Qty: {item.get('quantity',1)}</span>
+            </td><td style="padding:10px;border-bottom:1px solid #eee;text-align:right;">Rs {item.get('price',0):,}</td></tr>"""
+        total = sum(i.get("price",0)*i.get("quantity",1) for i in items)
+        html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f4f4f4;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:20px;"><tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;">
+        <tr><td style="background:#1a1a1a;padding:30px;text-align:center;"><h1 style="margin:0;color:#fff;font-size:32px;letter-spacing:4px;">ANGARAKHA</h1></td></tr>
+        <tr><td style="padding:40px 30px;text-align:center;"><h2 style="color:#1a1a1a;font-size:24px;">You left something behind!</h2>
+        <p style="color:#666;">Hi {name or 'there'}, your cart is waiting for you.</p></td></tr>
+        <tr><td style="padding:0 30px 20px;"><table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;">{items_html}</table>
+        <p style="text-align:right;font-size:18px;font-weight:bold;margin-top:15px;">Total: Rs {total:,}</p></td></tr>
+        <tr><td style="padding:20px 30px;text-align:center;">
+        <p style="color:#666;">Complete your purchase before these items sell out!</p></td></tr>
+        <tr><td style="padding:30px;text-align:center;background:#1a1a1a;">
+        <p style="margin:0;color:#fff;font-size:24px;letter-spacing:3px;">ANGARAKHA</p></td></tr>
+        </table></td></tr></table></body></html>"""
+        params = {"from": SENDER_EMAIL, "to": [email], "subject": "You left items in your cart! | Angarakha", "html": html}
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Abandoned cart email sent to {email}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send abandoned cart email: {e}")
+        return False
+
+# ─── Register Sub-routers ─────────────────────────────────────────────────────
+
+from routes.wishlist import router as wishlist_router
+from routes.addresses import router as addresses_router
+from routes.profile import router as profile_router
+from routes.search_enhanced import router as search_router
+from routes.inventory import router as inventory_router
+from routes.returns import router as returns_router
+from routes.abandoned_cart import router as abandoned_router
+from routes.giftcards import router as giftcards_router
+from routes.referral import router as referral_router
+
+# Set DB and helpers for all sub-routers
+from routes import wishlist, addresses, profile, search_enhanced, inventory, returns, abandoned_cart, giftcards, referral
+for mod in [wishlist, addresses, profile, search_enhanced, inventory, returns, abandoned_cart, giftcards, referral]:
+    mod.set_db(db)
+
+wishlist.set_helpers(get_current_user, require_user)
+addresses.set_helpers(require_user)
+profile.set_helpers(require_user)
+returns.set_helpers(get_current_user, require_user)
+returns.set_admin_helper(require_admin)
+inventory.set_admin_helper(require_admin)
+abandoned_cart.set_admin_helper(require_admin)
+abandoned_cart.set_email_config(RESEND_ENABLED, send_abandoned_cart_email)
+giftcards.set_helpers(require_user)
+giftcards.set_admin_helper(require_admin)
+referral.set_helpers(require_user)
+referral.set_admin_helper(require_admin)
+
+app.include_router(wishlist_router)
+app.include_router(addresses_router)
+app.include_router(profile_router)
+app.include_router(search_router)
+app.include_router(inventory_router)
+app.include_router(returns_router)
+app.include_router(abandoned_router)
+app.include_router(giftcards_router)
+app.include_router(referral_router)
+
 # ─── App Setup ─────────────────────────────────────────────────────────────────
 
 app.include_router(api_router)
@@ -1468,6 +1574,12 @@ async def startup():
     await db.users.create_index("email", unique=True)
     await db.users.create_index("user_id", unique=True)
     await db.user_sessions.create_index("session_token")
+    await db.wishlists.create_index("user_id", unique=True)
+    await db.addresses.create_index("user_id")
+    await db.returns.create_index("user_id")
+    await db.giftcards.create_index("code", unique=True)
+    await db.referrals.create_index("user_id", unique=True)
+    await db.referrals.create_index("code", unique=True)
 
 @app.on_event("shutdown")
 async def shutdown():

@@ -2,9 +2,13 @@ import '@/App.css';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
+import { WishlistProvider } from '@/contexts/WishlistContext';
 import { Toaster } from '@/components/ui/sonner';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import FreeShippingBar from '@/components/FreeShippingBar';
+import EmailPopup from '@/components/EmailPopup';
+import BackToTop from '@/components/BackToTop';
 import Home from '@/pages/Home';
 import Collections from '@/pages/Collections';
 import CollectionPage from '@/pages/CollectionPage';
@@ -19,11 +23,14 @@ import About from '@/pages/About';
 import AuthCallback from '@/pages/AuthCallback';
 import Legal from '@/pages/Legal';
 import Admin from '@/pages/Admin';
+import WishlistPage from '@/pages/Wishlist';
+import GiftCards from '@/pages/GiftCards';
+import Returns from '@/pages/Returns';
+import SalePage from '@/pages/SalePage';
 
 function AppRouter() {
   const location = useLocation();
 
-  // Check URL fragment for session_id synchronously during render
   if (location.hash?.includes('session_id=')) {
     return <AuthCallback />;
   }
@@ -31,6 +38,7 @@ function AppRouter() {
   return (
     <>
       <Header />
+      <FreeShippingBar />
       <main className="min-h-screen pt-16 lg:pt-20">
         <Routes>
           <Route path="/" element={<Home />} />
@@ -43,14 +51,22 @@ function AppRouter() {
           <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
           <Route path="/account" element={<Account />} />
           <Route path="/account/orders" element={<Account />} />
+          <Route path="/account/addresses" element={<Account />} />
+          <Route path="/account/returns" element={<Account />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/about" element={<About />} />
           <Route path="/legal/:page" element={<Legal />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/:tab" element={<Admin />} />
+          <Route path="/gift-cards" element={<GiftCards />} />
+          <Route path="/returns" element={<Returns />} />
+          <Route path="/sale" element={<SalePage />} />
         </Routes>
       </main>
       <Footer />
+      <EmailPopup />
+      <BackToTop />
       <Toaster position="bottom-right" />
     </>
   );
@@ -61,7 +77,9 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <CartProvider>
-          <AppRouter />
+          <WishlistProvider>
+            <AppRouter />
+          </WishlistProvider>
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>

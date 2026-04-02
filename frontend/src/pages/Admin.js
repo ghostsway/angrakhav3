@@ -7,7 +7,7 @@ import {
   BarChart3, Package, ShoppingCart, Users, Mail, FileText, LayoutGrid,
   Plus, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, X, Search,
   IndianRupee, TrendingUp, ShoppingBag, MessageSquare, Newspaper,
-  Check, Truck, XCircle, RefreshCw, Tag
+  Check, Truck, XCircle, RefreshCw, Tag, Warehouse, RotateCcw, Gift, UserPlus, AlertTriangle
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
@@ -19,6 +19,11 @@ const TABS = [
   { id: 'orders', label: 'Orders', icon: ShoppingCart },
   { id: 'collections', label: 'Collections', icon: LayoutGrid },
   { id: 'coupons', label: 'Coupons', icon: Tag },
+  { id: 'inventory', label: 'Inventory', icon: Warehouse },
+  { id: 'returns', label: 'Returns', icon: RotateCcw },
+  { id: 'abandoned', label: 'Abandoned Carts', icon: AlertTriangle },
+  { id: 'giftcards', label: 'Gift Cards', icon: Gift },
+  { id: 'referrals', label: 'Referrals', icon: UserPlus },
   { id: 'enquiries', label: 'Enquiries', icon: MessageSquare },
   { id: 'customers', label: 'Customers', icon: Users },
   { id: 'newsletter', label: 'Newsletter', icon: Newspaper },
@@ -855,6 +860,11 @@ export default function Admin() {
           {activeTab === 'orders' && <OrdersTab />}
           {activeTab === 'collections' && <CollectionsTab />}
           {activeTab === 'coupons' && <CouponsTab />}
+          {activeTab === 'inventory' && <InventoryTab />}
+          {activeTab === 'returns' && <ReturnsAdminTab />}
+          {activeTab === 'abandoned' && <AbandonedCartsTab />}
+          {activeTab === 'giftcards' && <GiftCardsAdminTab />}
+          {activeTab === 'referrals' && <ReferralsAdminTab />}
           {activeTab === 'enquiries' && <EnquiriesTab />}
           {activeTab === 'customers' && <CustomersTab />}
           {activeTab === 'newsletter' && <NewsletterTab />}
@@ -1168,6 +1178,183 @@ function CouponsTab() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Inventory Tab ─────────────────────────────────────────────────────────────
+function InventoryTab() {
+  const [inventory, setInventory] = useState(null);
+  useEffect(() => { axios.get(`${API}/admin/inventory`, { withCredentials: true }).then(r => setInventory(r.data)).catch(() => {}); }, []);
+  const updateStock = async (productId, sizeStock) => {
+    try {
+      await axios.put(`${API}/admin/inventory/${productId}`, { size_stock: sizeStock }, { withCredentials: true });
+      toast.success('Inventory updated');
+      const r = await axios.get(`${API}/admin/inventory`, { withCredentials: true });
+      setInventory(r.data);
+    } catch { toast.error('Failed to update'); }
+  };
+  if (!inventory) return <div className="text-center py-12 text-muted-foreground">Loading...</div>;
+  return (
+    <div data-testid="admin-inventory">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="font-serif text-xl font-light text-foreground">Inventory Management</h2>
+        <div className="flex gap-4 text-xs font-sans">
+          <span className="text-yellow-400">Low Stock: {inventory.low_stock?.length || 0}</span>
+          <span className="text-red-400">Out of Stock: {inventory.out_of_stock?.length || 0}</span>
+        </div>
+      </div>
+      {inventory.low_stock?.length > 0 && (
+        <div className="mb-6 bg-yellow-900/20 border border-yellow-800/50 p-4">
+          <h3 className="text-xs font-sans uppercase tracking-wider text-yellow-400 mb-2">Low Stock Alerts</h3>
+          <div className="space-y-1">{inventory.low_stock.map((item, i) => (
+            <p key={i} className="text-sm font-sans text-muted-foreground">{item.name} - Size {item.size}: <span className="text-yellow-400">{item.quantity} left</span></p>
+          ))}</div>
+        </div>
+      )}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm font-sans">
+          <thead><tr className="border-b border-brand-border text-left">
+            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Product</th>
+            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Status</th>
+            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Stock by Size</th>
+          </tr></thead>
+          <tbody>{(inventory.products || []).map(p => (
+            <tr key={p.product_id} className="border-b border-brand-border/50">
+              <td className="py-3 text-foreground">{p.name}</td>
+              <td className="py-3"><span className={`text-xs px-2 py-0.5 ${p.in_stock ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>{p.in_stock ? 'In Stock' : 'Out of Stock'}</span></td>
+              <td className="py-3"><div className="flex flex-wrap gap-1">{Object.entries(p.size_stock || {}).map(([s, q]) => (
+                <span key={s} className={`text-xs px-2 py-1 border ${q <= 0 ? 'border-red-800 text-red-400' : q <= 5 ? 'border-yellow-800 text-yellow-400' : 'border-brand-border text-muted-foreground'}`}>{s}: {q}</span>
+              ))}</div></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Returns Admin Tab ─────────────────────────────────────────────────────────
+function ReturnsAdminTab() {
+  const [returns, setReturns] = useState([]);
+  useEffect(() => { axios.get(`${API}/admin/returns`, { withCredentials: true }).then(r => setReturns(r.data.returns || [])).catch(() => {}); }, []);
+  const updateStatus = async (returnId, status) => {
+    try {
+      await axios.put(`${API}/admin/returns/${returnId}`, { status }, { withCredentials: true });
+      toast.success(`Return ${status}`);
+      setReturns(prev => prev.map(r => r.return_id === returnId ? { ...r, status } : r));
+    } catch { toast.error('Failed to update'); }
+  };
+  return (
+    <div data-testid="admin-returns">
+      <h2 className="font-serif text-xl font-light text-foreground mb-6">Return Requests</h2>
+      {returns.length === 0 ? <p className="text-center py-12 text-muted-foreground">No return requests yet.</p> : (
+        <div className="space-y-3">{returns.map(r => (
+          <div key={r.return_id} className="bg-brand-surface border border-brand-border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div><p className="text-sm font-sans font-medium text-foreground">{r.order_number || r.order_id}</p><p className="text-xs font-sans text-muted-foreground capitalize">{r.type} - {r.reason?.replace('_', ' ')}</p></div>
+              <span className={`text-xs font-sans uppercase tracking-wider px-2 py-1 ${r.status === 'approved' ? 'bg-green-900/30 text-green-400' : r.status === 'rejected' ? 'bg-red-900/30 text-red-400' : 'bg-yellow-900/30 text-yellow-400'}`}>{r.status}</span>
+            </div>
+            {r.details && <p className="text-xs font-sans text-muted-foreground mb-2">{r.details}</p>}
+            {r.status === 'pending' && (
+              <div className="flex gap-2"><button onClick={() => updateStatus(r.return_id, 'approved')} className="text-xs text-green-400 border border-green-800 px-3 py-1 hover:bg-green-900/30">Approve</button><button onClick={() => updateStatus(r.return_id, 'rejected')} className="text-xs text-red-400 border border-red-800 px-3 py-1 hover:bg-red-900/30">Reject</button></div>
+            )}
+          </div>
+        ))}</div>
+      )}
+    </div>
+  );
+}
+
+// ─── Abandoned Carts Tab ────────────────────────────────────────────────────────
+function AbandonedCartsTab() {
+  const [carts, setCarts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { axios.get(`${API}/admin/abandoned-carts`, { withCredentials: true }).then(r => setCarts(r.data.carts || [])).catch(() => {}).finally(() => setLoading(false)); }, []);
+  const sendReminder = async (cartId) => {
+    try {
+      const res = await axios.post(`${API}/admin/abandoned-carts/${cartId}/send-reminder`, {}, { withCredentials: true });
+      toast.success(res.data.status === 'sent' ? 'Reminder sent!' : res.data.message || 'Could not send');
+      setCarts(prev => prev.map(c => c.cart_id === cartId ? { ...c, recovery_email_sent: true } : c));
+    } catch { toast.error('Failed to send reminder'); }
+  };
+  if (loading) return <div className="text-center py-12 text-muted-foreground">Loading...</div>;
+  return (
+    <div data-testid="admin-abandoned-carts">
+      <h2 className="font-serif text-xl font-light text-foreground mb-6">Abandoned Carts ({carts.length})</h2>
+      {carts.length === 0 ? <p className="text-center py-12 text-muted-foreground">No abandoned carts found.</p> : (
+        <div className="space-y-3">{carts.map(c => (
+          <div key={c.cart_id} className="bg-brand-surface border border-brand-border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div><p className="text-sm font-sans text-foreground">{c.customer_name || c.email || 'Guest'}</p><p className="text-xs font-sans text-muted-foreground">{c.item_count} items - Rs {c.total_value?.toLocaleString('en-IN')}</p></div>
+              <div className="flex items-center gap-3">
+                {c.recovery_email_sent && <span className="text-xs text-green-400">Reminded</span>}
+                {c.email && !c.recovery_email_sent && <button onClick={() => sendReminder(c.cart_id)} className="text-xs text-primary border border-primary px-3 py-1 hover:bg-primary/10">Send Reminder</button>}
+              </div>
+            </div>
+          </div>
+        ))}</div>
+      )}
+    </div>
+  );
+}
+
+// ─── Gift Cards Admin Tab ───────────────────────────────────────────────────────
+function GiftCardsAdminTab() {
+  const [cards, setCards] = useState([]);
+  useEffect(() => { axios.get(`${API}/admin/giftcards`, { withCredentials: true }).then(r => setCards(r.data.giftcards || [])).catch(() => {}); }, []);
+  return (
+    <div data-testid="admin-giftcards">
+      <h2 className="font-serif text-xl font-light text-foreground mb-6">Gift Cards ({cards.length})</h2>
+      {cards.length === 0 ? <p className="text-center py-12 text-muted-foreground">No gift cards issued yet.</p> : (
+        <div className="overflow-x-auto"><table className="w-full text-sm font-sans">
+          <thead><tr className="border-b border-brand-border text-left">
+            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Code</th>
+            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Amount</th>
+            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Balance</th>
+            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Recipient</th>
+            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Status</th>
+          </tr></thead>
+          <tbody>{cards.map(c => (
+            <tr key={c.giftcard_id} className="border-b border-brand-border/50">
+              <td className="py-3 text-primary font-mono">{c.code}</td>
+              <td className="py-3 text-foreground">Rs {c.amount?.toLocaleString('en-IN')}</td>
+              <td className="py-3 text-foreground">Rs {c.balance?.toLocaleString('en-IN')}</td>
+              <td className="py-3 text-muted-foreground">{c.recipient_name}</td>
+              <td className="py-3"><span className={`text-xs px-2 py-0.5 ${c.status === 'active' ? 'bg-green-900/30 text-green-400' : 'bg-muted text-muted-foreground'}`}>{c.status}</span></td>
+            </tr>
+          ))}</tbody>
+        </table></div>
+      )}
+    </div>
+  );
+}
+
+// ─── Referrals Admin Tab ───────────────────────────────────────────────────────
+function ReferralsAdminTab() {
+  const [referrals, setReferrals] = useState([]);
+  useEffect(() => { axios.get(`${API}/admin/referrals`, { withCredentials: true }).then(r => setReferrals(r.data.referrals || [])).catch(() => {}); }, []);
+  return (
+    <div data-testid="admin-referrals">
+      <h2 className="font-serif text-xl font-light text-foreground mb-6">Referral Program</h2>
+      {referrals.length === 0 ? <p className="text-center py-12 text-muted-foreground">No referrals yet.</p> : (
+        <div className="overflow-x-auto"><table className="w-full text-sm font-sans">
+          <thead><tr className="border-b border-brand-border text-left">
+            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">User</th>
+            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Code</th>
+            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Referrals</th>
+            <th className="py-3 text-xs uppercase tracking-wider text-muted-foreground">Successful</th>
+          </tr></thead>
+          <tbody>{referrals.map(r => (
+            <tr key={r.referral_id} className="border-b border-brand-border/50">
+              <td className="py-3"><p className="text-foreground">{r.user_name}</p><p className="text-xs text-muted-foreground">{r.user_email}</p></td>
+              <td className="py-3 text-primary font-mono">{r.code}</td>
+              <td className="py-3 text-foreground">{r.total_referrals}</td>
+              <td className="py-3 text-foreground">{r.successful_referrals}</td>
+            </tr>
+          ))}</tbody>
+        </table></div>
+      )}
     </div>
   );
 }

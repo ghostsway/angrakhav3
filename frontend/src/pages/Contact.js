@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function Contact() {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', occasion: '', preferred_date: '', message: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', category: '', occasion: '', preferred_date: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -15,7 +15,7 @@ export default function Contact() {
     try {
       await axios.post(`${API}/enquiry`, form);
       toast.success('Enquiry submitted. We will be in touch shortly.');
-      setForm({ name: '', email: '', phone: '', occasion: '', preferred_date: '', message: '' });
+      setForm({ name: '', email: '', phone: '', category: '', occasion: '', preferred_date: '', message: '' });
     } catch { toast.error('Failed to submit. Please try again.'); }
     finally { setSubmitting(false); }
   };
@@ -38,6 +38,18 @@ export default function Contact() {
                   className="w-full bg-brand-surface border border-brand-border px-4 py-3 text-sm font-sans text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" data-testid="contact-name" />
                 <input type="email" placeholder="Email address *" required value={form.email} onChange={e => setForm({...form, email: e.target.value})}
                   className="w-full bg-brand-surface border border-brand-border px-4 py-3 text-sm font-sans text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" data-testid="contact-email" />
+              </div>
+              <div>
+                <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}
+                  className="w-full bg-brand-surface border border-brand-border px-4 py-3 text-sm font-sans text-foreground focus:outline-none focus:ring-1 focus:ring-primary" data-testid="contact-category">
+                  <option value="">Enquiry category *</option>
+                  <option value="product">Product Enquiry</option>
+                  <option value="order">Order Status</option>
+                  <option value="custom">Custom / Bespoke Order</option>
+                  <option value="return">Returns & Exchanges</option>
+                  <option value="bulk">Bulk / Wholesale</option>
+                  <option value="general">General Question</option>
+                </select>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <input type="tel" placeholder="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
