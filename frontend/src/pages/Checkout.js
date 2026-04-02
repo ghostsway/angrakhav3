@@ -18,13 +18,48 @@ export default function Checkout() {
   const [form, setForm] = useState({
     name: user?.name || '', email: user?.email || '', phone: '',
     address_line1: '', address_line2: '', city: '', state: '', pincode: '',
-    payment_method: 'upi'
+    payment_method: 'upi', coupon_code: ''
   });
+  const [coupon, setCoupon] = useState(null);
+  const [couponInput, setCouponInput] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
 
   const items = cart.items || [];
   const tax = Math.round(subtotal * 0.18);
   const shipping = subtotal >= 5000 ? 0 : 500;
-  const total = subtotal + tax + shipping;
+  const discount = coupon ? coupon.discount_amount : 0;
+
+  const applyCoupon = async () => {
+    if (!couponInput.trim()) {
+      toast.error('Please enter a coupon code');
+      return;
+    }
+    setApplyingCoupon(true);
+    try {
+      const res = await axios.post(`${API}/coupons/validate`, {
+        code: couponInput,
+        order_total: subtotal + tax + shipping
+      });
+      setCoupon(res.data);
+      setForm(p => ({ ...p, coupon_code: couponInput }));
+      toast.success(res.data.message);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Invalid coupon code');
+      setCoupon(null);
+      setForm(p => ({ ...p, coupon_code: '' }));
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setCoupon(null);
+    setCouponInput('');
+    setForm(p => ({ ...p, coupon_code: '' }));
+    toast.info('Coupon removed');
+  };
+
+  const total = subtotal + tax + shipping - discount;
 
   const updateField = (key, val) => setForm(p => ({ ...p, [key]: val }));
 
@@ -194,10 +229,55 @@ export default function Checkout() {
                   </div>
                 ))}
               </div>
+              
+              {/* Coupon Section */}
+              <div className="border-t border-brand-border pt-4 mt-4">
+                <h3 className="font-sans text-sm font-medium text-foreground mb-3">Have a Coupon?</h3>
+                {!coupon ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter coupon code"
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                      className="flex-1 bg-brand-surface border border-brand-border px-3 py-2 text-sm font-sans text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary uppercase"
+                    />
+                    <button
+                      type="button"
+                      onClick={applyCoupon}
+                      disabled={applyingCoupon}
+                      className="bg-primary text-white px-4 py-2 text-sm font-sans uppercase tracking-wider hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {applyingCoupon ? 'Applying...' : 'Apply'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-green-800">{coupon.code} Applied!</p>
+                      <p className="text-xs text-green-600">You saved ₹{coupon.discount_amount.toLocaleString()}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removeCoupon}
+                      className="text-xs text-red-600 hover:text-red-700 underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+              
               <div className="space-y-2 text-sm font-sans border-t border-brand-border pt-4">
                 <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-foreground">Rs {subtotal.toLocaleString('en-IN')}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">GST (18%)</span><span className="text-foreground">Rs {tax.toLocaleString('en-IN')}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span className="text-foreground">{shipping === 0 ? 'Free' : `Rs ${shipping}`}</span></div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount ({coupon.code})</span>
+                    <span>- Rs {discount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
                 <div className="flex justify-between border-t border-brand-border pt-2 mt-2">
                   <span className="font-medium text-foreground">Total</span>
                   <span className="font-serif text-lg text-primary">Rs {total.toLocaleString('en-IN')}</span>

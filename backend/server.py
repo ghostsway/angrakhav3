@@ -338,6 +338,21 @@ class CartItemAdd(BaseModel):
     price: float
     quantity: int = 1
 
+
+class CouponCreate(BaseModel):
+    code: str
+    discount_type: str  # 'percentage' or 'fixed'
+    discount_value: float
+    min_order: float = 0
+    max_discount: Optional[float] = None
+    expiry_date: Optional[str] = None
+    usage_limit: Optional[int] = None
+    active: bool = True
+
+class CouponValidate(BaseModel):
+    code: str
+    order_total: float
+
 class CartItemUpdate(BaseModel):
     quantity: int
 
@@ -351,6 +366,7 @@ class CheckoutCreate(BaseModel):
     state: str
     pincode: str
     payment_method: str = "upi"
+    coupon_code: Optional[str] = None
 
 class ReviewCreate(BaseModel):
     rating: int
@@ -666,7 +682,40 @@ async def create_order(data: CheckoutCreate, request: Request):
     subtotal = sum(i["price"] * i["quantity"] for i in items)
     tax = round(subtotal * 0.18, 2)
     shipping = 0 if subtotal >= 5000 else 500
-    total = round(subtotal + tax + shipping, 2)
+    
+    # Handle coupon discount
+    discount = 0
+    coupon_code = None
+    if data.coupon_code:
+        coupon = await db.coupons.find_one({"code": data.coupon_code.upper(), "active": True})
+        if coupon:
+            # Validate coupon (same logic as validate endpoint)
+            valid = True
+            if coupon.get("expiry_date"):
+                expiry = datetime.fromisoformat(coupon["expiry_date"].replace('Z', '+00:00'))
+                if datetime.now(timezone.utc) > expiry:
+                    valid = False
+            if coupon.get("usage_limit") and coupon.get("times_used", 0) >= coupon["usage_limit"]:
+                valid = False
+            if (subtotal + tax + shipping) < coupon.get("min_order", 0):
+                valid = False
+            
+            if valid:
+                if coupon["discount_type"] == "percentage":
+                    discount = ((subtotal + tax + shipping) * coupon["discount_value"]) / 100
+                    if coupon.get("max_discount"):
+                        discount = min(discount, coupon["max_discount"])
+                else:
+                    discount = coupon["discount_value"]
+                discount = round(discount, 2)
+                coupon_code = coupon["code"]
+                # Increment usage count
+                await db.coupons.update_one(
+                    {"code": data.coupon_code.upper()},
+                    {"$inc": {"times_used": 1}}
+                )
+    
+    total = round(subtotal + tax + shipping - discount, 2)
     order_number = f"VY-{datetime.now(timezone.utc).strftime('%y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
     order = {
         "order_id": f"order_{uuid.uuid4().hex[:12]}",
@@ -676,7 +725,12 @@ async def create_order(data: CheckoutCreate, request: Request):
         "customer_name": data.name,
         "phone": data.phone,
         "items": items,
-        "subtotal": subtotal, "tax": tax, "shipping": shipping, "total": total,
+        "subtotal": subtotal, 
+        "tax": tax, 
+        "shipping": shipping, 
+        "discount": discount,
+        "coupon_code": coupon_code,
+        "total": total,
         "status": "confirmed", "payment_status": "paid", "payment_method": data.payment_method,
         "shipping_address": {
             "line1": data.address_line1, "line2": data.address_line2,
@@ -1018,6 +1072,124 @@ async def admin_create_collection(request: Request):
     await db.collections.insert_one(collection)
     collection.pop("_id", None)
     return collection
+
+
+# ─── Coupons (Admin) ───────────────────────────────────────────────────────────
+
+@api_router.get("/admin/coupons")
+async def admin_list_coupons(request: Request):
+    """Get all coupons for admin panel"""
+    await require_admin(request)
+    coupons = await db.coupons.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return {"coupons": coupons}
+
+@api_router.post("/admin/coupons")
+async def admin_create_coupon(data: CouponCreate, request: Request):
+    """Create a new coupon"""
+    await require_admin(request)
+    
+    # Check if coupon code already exists
+    existing = await db.coupons.find_one({"code": data.code.upper()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Coupon code already exists")
+    
+    coupon = {
+        "coupon_id": str(uuid.uuid4()),
+        "code": data.code.upper(),
+        "discount_type": data.discount_type,
+        "discount_value": data.discount_value,
+        "min_order": data.min_order,
+        "max_discount": data.max_discount,
+        "expiry_date": data.expiry_date,
+        "usage_limit": data.usage_limit,
+        "times_used": 0,
+        "active": data.active,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.coupons.insert_one(coupon)
+    coupon.pop("_id", None)
+    logger.info(f"Coupon created: {data.code}")
+    return coupon
+
+@api_router.delete("/admin/coupons/{coupon_id}")
+async def admin_delete_coupon(coupon_id: str, request: Request):
+    """Delete a coupon"""
+    await require_admin(request)
+    result = await db.coupons.delete_one({"coupon_id": coupon_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    return {"message": "Coupon deleted"}
+
+@api_router.put("/admin/coupons/{coupon_id}")
+async def admin_update_coupon(coupon_id: str, data: CouponCreate, request: Request):
+    """Update a coupon"""
+    await require_admin(request)
+    
+    update_data = {
+        "code": data.code.upper(),
+        "discount_type": data.discount_type,
+        "discount_value": data.discount_value,
+        "min_order": data.min_order,
+        "max_discount": data.max_discount,
+        "expiry_date": data.expiry_date,
+        "usage_limit": data.usage_limit,
+        "active": data.active,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    result = await db.coupons.update_one({"coupon_id": coupon_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    
+    coupon = await db.coupons.find_one({"coupon_id": coupon_id}, {"_id": 0})
+    return coupon
+
+# ─── Coupon Validation (Public) ────────────────────────────────────────────────
+
+@api_router.post("/coupons/validate")
+async def validate_coupon(data: CouponValidate):
+    """Validate a coupon code and return discount amount"""
+    coupon = await db.coupons.find_one({"code": data.code.upper(), "active": True})
+    
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Invalid coupon code")
+    
+    # Check expiry
+    if coupon.get("expiry_date"):
+        from datetime import datetime
+        expiry = datetime.fromisoformat(coupon["expiry_date"].replace('Z', '+00:00'))
+        if datetime.now(timezone.utc) > expiry:
+            raise HTTPException(status_code=400, detail="Coupon has expired")
+    
+    # Check usage limit
+    if coupon.get("usage_limit") and coupon.get("times_used", 0) >= coupon["usage_limit"]:
+        raise HTTPException(status_code=400, detail="Coupon usage limit reached")
+    
+    # Check minimum order value
+    if data.order_total < coupon.get("min_order", 0):
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Minimum order value of ₹{coupon['min_order']} required"
+        )
+    
+    # Calculate discount
+    if coupon["discount_type"] == "percentage":
+        discount = (data.order_total * coupon["discount_value"]) / 100
+        if coupon.get("max_discount"):
+            discount = min(discount, coupon["max_discount"])
+    else:  # fixed
+        discount = coupon["discount_value"]
+    
+    return {
+        "valid": True,
+        "code": coupon["code"],
+        "discount_type": coupon["discount_type"],
+        "discount_value": coupon["discount_value"],
+        "discount_amount": round(discount, 2),
+        "message": f"Coupon applied! You saved ₹{round(discount, 2)}"
+    }
 
 @api_router.put("/admin/collections/{collection_id}")
 async def admin_update_collection(collection_id: str, request: Request):
