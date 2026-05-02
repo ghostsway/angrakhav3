@@ -47,6 +47,7 @@ export default function CollectionPage() {
       .finally(() => setLoading(false));
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchProducts({}, 1); }, [slug]);
 
   const handleFilter = (f) => {

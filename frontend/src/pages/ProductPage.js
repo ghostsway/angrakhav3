@@ -44,6 +44,7 @@ export default function ProductPage() {
   const imgRef = useRef(null);
   const touchStart = useRef(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setLoading(true);
     setActiveImg(0);

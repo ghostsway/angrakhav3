@@ -23,6 +23,7 @@ export default function SearchPage() {
     axios.get(`${API}/search/popular`).then(r => setPopular(r.data.popular || [])).catch(() => {});
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const q = searchParams.get('q');
     if (q) { setQuery(q); doSearch(q); }
