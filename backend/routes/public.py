@@ -16,8 +16,11 @@ def set_helpers(require):
     global require_user
     require_user = require
 
+from utils.limiter import limiter
+
 @router.post("/enquiry")
-async def submit_enquiry(data: EnquiryCreate):
+@limiter.limit("3/minute")
+async def submit_enquiry(request: Request, data: EnquiryCreate):
     enquiry = {
         "enquiry_id": f"enq_{uuid.uuid4().hex[:10]}",
         **data.model_dump(),
@@ -30,7 +33,8 @@ async def submit_enquiry(data: EnquiryCreate):
     return {"status": "submitted", "enquiry_id": enquiry["enquiry_id"]}
 
 @router.post("/newsletter")
-async def subscribe_newsletter(data: NewsletterCreate):
+@limiter.limit("3/minute")
+async def subscribe_newsletter(request: Request, data: NewsletterCreate):
     existing = await db.newsletter.find_one({"email": data.email})
     if existing:
         return {"status": "already_subscribed"}
@@ -71,7 +75,8 @@ async def get_cms(key: str):
     return block
 
 @router.post("/coupons/validate")
-async def validate_coupon(data: CouponValidate):
+@limiter.limit("10/minute")
+async def validate_coupon(request: Request, data: CouponValidate):
     """Validate a coupon code and return discount amount"""
     coupon = await db.coupons.find_one({"code": data.code.upper(), "active": True})
     
