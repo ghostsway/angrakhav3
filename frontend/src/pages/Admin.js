@@ -968,7 +968,7 @@ export default function Admin() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !user) navigate('/');
+    if (!authLoading && !user) navigate('/admin/login');
     if (!authLoading && user && !user.is_admin) navigate('/');
   }, [user, authLoading, navigate]);
 
