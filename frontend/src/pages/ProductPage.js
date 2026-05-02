@@ -150,7 +150,6 @@ export default function ProductPage() {
     </div>
   );
 
-  const hasDiscount = product.compare_price && product.compare_price > product.price;
   const inWishlist = isInWishlist(product.product_id);
 
   return (
@@ -219,12 +218,6 @@ export default function ProductPage() {
 
             <div className="flex items-center gap-3" data-testid="product-price">
               <span className="font-serif text-2xl text-primary">Rs {product.price?.toLocaleString('en-IN')}</span>
-              {hasDiscount && (
-                <>
-                  <span className="text-sm font-sans text-muted-foreground line-through">Rs {product.compare_price?.toLocaleString('en-IN')}</span>
-                  <span className="text-xs font-sans bg-red-600 text-white px-2 py-0.5">{Math.round((1 - product.price / product.compare_price) * 100)}% off</span>
-                </>
-              )}
             </div>
 
             {reviews.total > 0 && (
