@@ -6,9 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export default function ProductCard({ product, index = 0 }) {
-  const { name, slug, price, compare_price, images, category, tags, in_stock, badges } = product;
-  const hasDiscount = compare_price && compare_price > price;
-  const discount = hasDiscount ? Math.round((1 - price / compare_price) * 100) : 0;
+  const { name, slug, price, images, category, tags, in_stock, badges } = product;
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { user, login } = useAuth();
   const inWishlist = isInWishlist(product.product_id);
@@ -29,7 +27,6 @@ export default function ProductCard({ product, index = 0 }) {
   const allBadges = [];
   if (tags?.includes('new') || badges?.includes('new')) allBadges.push({ label: 'New', color: 'bg-primary text-primary-foreground' });
   if (tags?.includes('bestseller') || badges?.includes('bestseller')) allBadges.push({ label: 'Bestseller', color: 'bg-brand-surface/90 text-foreground border border-brand-border' });
-  if (hasDiscount) allBadges.push({ label: `${discount}% Off`, color: 'bg-red-600 text-white' });
   if (in_stock === false) allBadges.push({ label: 'Sold Out', color: 'bg-black/70 text-white' });
 
   return (
@@ -64,9 +61,6 @@ export default function ProductCard({ product, index = 0 }) {
           <h3 className="font-serif text-lg font-light text-foreground group-hover:text-primary transition-colors duration-300">{name}</h3>
           <div className="flex items-center gap-2">
             <span className="text-sm font-sans text-primary font-medium">Rs {price?.toLocaleString('en-IN')}</span>
-            {hasDiscount && (
-              <span className="text-xs font-sans text-muted-foreground line-through">Rs {compare_price?.toLocaleString('en-IN')}</span>
-            )}
           </div>
         </div>
       </Link>
