@@ -8,6 +8,7 @@ from seed_data import seed_database
 from auth import get_current_user, require_user, require_admin, get_guest_token
 from utils.email import send_order_confirmation_email, send_abandoned_cart_email, RESEND_ENABLED
 from utils.notifications import send_order_notification_telegram
+from utils.cart_helpers import set_db as cart_helpers_set_db
 
 from routes.wishlist import router as wishlist_router
 from routes.addresses import router as addresses_router
@@ -72,6 +73,7 @@ auth_set_helpers(get_current_user, require_user)
 products_set_db(db)
 
 cart_set_db(db)
+cart_helpers_set_db(db)
 cart_set_helpers(get_current_user, require_user, get_guest_token)
 
 orders_set_db(db)
