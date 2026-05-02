@@ -61,7 +61,7 @@ export default function OrderConfirmation() {
             Order Confirmed!
           </h1>
           <p className="text-muted-foreground mb-4">
-            Thank you for your purchase. Your order has been received.
+            Your order is confirmed and will be delivered soon. We'll notify you via email.
           </p>
           <div className="inline-block bg-brand-surface border border-brand-border px-6 py-3 rounded">
             <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Order Number</p>
@@ -69,22 +69,7 @@ export default function OrderConfirmation() {
           </div>
         </div>
 
-        {/* Email Confirmation Notice */}
-        <div className="bg-brand-surface border border-brand-border rounded-lg p-6 mb-8">
-          <div className="flex items-start gap-4">
-            <Mail className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="font-sans text-sm font-medium text-foreground mb-1">
-                Order Confirmation Sent
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                We've sent a confirmation email to <span className="text-foreground font-medium">{order.email}</span> with your order details.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="max-w-2xl mx-auto">
           {/* Order Items */}
           <div className="bg-brand-surface border border-brand-border rounded-lg p-6">
             <div className="flex items-center gap-3 mb-6">
@@ -128,70 +113,6 @@ export default function OrderConfirmation() {
                 <span className="text-foreground">Total</span>
                 <span className="text-primary">₹{order.total.toLocaleString()}</span>
               </div>
-            </div>
-          </div>
-
-          {/* Delivery & Payment Info */}
-          <div className="space-y-6">
-            {/* Delivery Address */}
-            <div className="bg-brand-surface border border-brand-border rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <MapPin className="w-5 h-5 text-primary" />
-                <h2 className="font-sans text-lg font-medium text-foreground">Delivery Address</h2>
-              </div>
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p className="text-foreground font-medium">{order.customer_name}</p>
-                <p>{order.shipping_address.line1}</p>
-                {order.shipping_address.line2 && <p>{order.shipping_address.line2}</p>}
-                <p>{order.shipping_address.city}, {order.shipping_address.state} - {order.shipping_address.pincode}</p>
-                <p className="flex items-center gap-2 mt-3 text-foreground">
-                  <Phone className="w-4 h-4" />
-                  {order.phone}
-                </p>
-              </div>
-            </div>
-
-            {/* Payment Information */}
-            <div className="bg-brand-surface border border-brand-border rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <CreditCard className="w-5 h-5 text-primary" />
-                <h2 className="font-sans text-lg font-medium text-foreground">Payment Information</h2>
-              </div>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Payment Method</span>
-                  <span className="text-foreground font-medium uppercase">{order.payment_method}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Payment Status</span>
-                  <span className={`font-medium ${order.payment_status === 'paid' ? 'text-green-600' : 'text-yellow-600'}`}>
-                    {order.payment_status.toUpperCase()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Order Status</span>
-                  <span className="text-foreground font-medium uppercase">{order.status}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Next Steps */}
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-6">
-              <h3 className="font-sans text-sm font-medium text-foreground mb-3">What's Next?</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span>We'll send you tracking details once your order is shipped</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span>Expected delivery: 5-7 business days</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span>Questions? Contact us at {order.phone}</span>
-                </li>
-              </ul>
             </div>
           </div>
         </div>
