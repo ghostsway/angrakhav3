@@ -31,6 +31,25 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+# --- Rate Limiting Setup ---
+from utils.limiter import limiter
+from slowapi.errors import RateLimitExceeded
+from starlette.responses import JSONResponse
+from fastapi import Request
+
+app.state.limiter = limiter
+
+@app.exception_handler(RateLimitExceeded)
+def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": f"Rate limit exceeded: {exc.detail}"},
+        headers={
+            "Access-Control-Allow-Origin": request.headers.get("origin") or "*",
+            "Access-Control-Allow-Credentials": "true"
+        }
+    )
+
 cors_origins = os.getenv("CORS_ORIGINS", "https://angarakha.com,https://www.angarakha.com,http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
