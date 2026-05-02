@@ -38,9 +38,33 @@ async def exchange_session(request: Request, response: Response):
         await db.users.update_one({"email": email}, {"$set": {"name": name, "picture": picture}})
     else:
         user_id = f"user_{uuid.uuid4().hex[:12]}"
+        # Generate a unique referral code based on email prefix or random string
+        import random, string
+        base_code = email.split('@')[0].upper()[:6]
+        base_code = ''.join(c for c in base_code if c.isalnum())
+        if len(base_code) < 3:
+            base_code += ''.join(random.choices(string.ascii_uppercase, k=3))
+        random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        referral_code = f"{base_code}{random_suffix}"
+        
+        # Ensure it's truly unique just in case
+        while await db.users.find_one({"referral_code": referral_code}):
+            random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+            referral_code = f"{base_code}{random_suffix}"
+            
         await db.users.insert_one({
             "user_id": user_id, "email": email, "name": name, "picture": picture,
-            "phone": "", "addresses": [], "created_at": datetime.now(timezone.utc)
+            "phone": "", "addresses": [], "created_at": datetime.now(timezone.utc),
+            "referral_code": referral_code
+        })
+        
+        # Initialize referral stats
+        await db.referrals.insert_one({
+            "user_id": user_id,
+            "referral_code": referral_code,
+            "total_referrals": 0,
+            "available_credit": 0,
+            "referred_users": []
         })
     await db.user_sessions.delete_many({"user_id": user_id})
     await db.user_sessions.insert_one({

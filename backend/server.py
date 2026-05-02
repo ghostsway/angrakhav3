@@ -25,11 +25,31 @@ from routes.cart import router as cart_router, set_db as cart_set_db, set_helper
 from routes.orders import router as orders_router, set_db as orders_set_db, set_helpers as orders_set_helpers, set_email_config as orders_set_email_config, set_notification_config as orders_set_notification_config
 from routes.public import router as public_router, set_db as public_set_db, set_helpers as public_set_helpers
 from routes.admin import router as admin_router, set_db as admin_set_db, set_helpers as admin_set_helpers
+from routes.referrals import router as referrals_router, set_db as referrals_set_db, set_helpers as referrals_set_helpers
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+# --- Rate Limiting Setup ---
+from utils.limiter import limiter
+from slowapi.errors import RateLimitExceeded
+from starlette.responses import JSONResponse
+from fastapi import Request
+
+app.state.limiter = limiter
+
+@app.exception_handler(RateLimitExceeded)
+def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": f"Rate limit exceeded: {exc.detail}"},
+        headers={
+            "Access-Control-Allow-Origin": request.headers.get("origin") or "*",
+            "Access-Control-Allow-Credentials": "true"
+        }
+    )
 
 cors_origins = os.getenv("CORS_ORIGINS", "https://angarakha.com,https://www.angarakha.com,http://localhost:3000").split(",")
 app.add_middleware(
@@ -87,12 +107,16 @@ public_set_helpers(require_user)
 admin_set_db(db)
 admin_set_helpers(get_current_user, require_admin)
 
+referrals_set_db(db)
+referrals_set_helpers(require_user, require_admin)
+
 app.include_router(auth_router)
 app.include_router(products_router)
 app.include_router(cart_router)
 app.include_router(orders_router)
 app.include_router(public_router)
 app.include_router(admin_router)
+app.include_router(referrals_router)
 
 # ─── App Setup ─────────────────────────────────────────────────────────────────
 
