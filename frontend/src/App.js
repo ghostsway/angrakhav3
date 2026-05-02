@@ -23,6 +23,7 @@ import About from '@/pages/About';
 import AuthCallback from '@/pages/AuthCallback';
 import Legal from '@/pages/Legal';
 import Admin from '@/pages/Admin';
+import AdminLogin from '@/pages/AdminLogin';
 import WishlistPage from '@/pages/Wishlist';
 import GiftCards from '@/pages/GiftCards';
 import Returns from '@/pages/Returns';
@@ -58,6 +59,7 @@ function AppRouter() {
           <Route path="/about" element={<About />} />
           <Route path="/legal/:page" element={<Legal />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/:tab" element={<Admin />} />
           <Route path="/gift-cards" element={<GiftCards />} />
           <Route path="/returns" element={<Returns />} />

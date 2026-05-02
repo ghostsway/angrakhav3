@@ -66,3 +66,62 @@ async def logout(request: Request, response: Response):
         await db.user_sessions.delete_many({"session_token": token})
     response.delete_cookie("session_token", path="/")
     return {"status": "ok"}
+
+@router.post("/admin/login")
+async def admin_login(request: Request, response: Response):
+    import os
+    import bcrypt
+    from pydantic import BaseModel
+    
+    body = await request.json()
+    username = body.get("username")
+    password = body.get("password")
+    
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Username and password required")
+        
+    admin_username = os.environ.get("ADMIN_USERNAME")
+    admin_password_hash = os.environ.get("ADMIN_PASSWORD_HASH")
+    
+    if not admin_username or not admin_password_hash:
+        raise HTTPException(status_code=500, detail="Admin credentials not configured")
+        
+    if username != admin_username:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    # Verify password
+    try:
+        is_valid = bcrypt.checkpw(password.encode('utf-8'), admin_password_hash.encode('utf-8'))
+        if not is_valid:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+    except Exception as e:
+        print(f"Bcrypt error: {e}")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    # Generate session token and user ID if not exists
+    session_token = f"admin_session_{uuid.uuid4().hex}"
+    admin_id = "admin_001"
+    
+    # Set the user session so the existing auth middleware considers this an authenticated user
+    # Wait, the auth middleware checks get_current_user. Let's make sure the admin user exists in users collection
+    admin_user = await db.users.find_one({"email": f"{username}@admin.local"}, {"_id": 0})
+    if not admin_user:
+        await db.users.insert_one({
+            "user_id": admin_id, "email": f"{username}@admin.local", "name": "Admin", "picture": "",
+            "phone": "", "addresses": [], "created_at": datetime.now(timezone.utc), "role": "admin"
+        })
+    else:
+        # Make sure role is set
+        if "role" not in admin_user or admin_user["role"] != "admin":
+            await db.users.update_one({"user_id": admin_user["user_id"]}, {"$set": {"role": "admin"}})
+        admin_id = admin_user["user_id"]
+        
+    await db.user_sessions.delete_many({"user_id": admin_id})
+    await db.user_sessions.insert_one({
+        "user_id": admin_id, "session_token": session_token,
+        "expires_at": datetime.now(timezone.utc).replace(day=datetime.now(timezone.utc).day) + __import__('datetime').timedelta(days=7),
+        "created_at": datetime.now(timezone.utc)
+    })
+    
+    response.set_cookie(key="session_token", value=session_token, httponly=True, secure=True, samesite="none", path="/", max_age=7*24*60*60)
+    return {"status": "ok", "message": "Logged in successfully", "role": "admin"}
