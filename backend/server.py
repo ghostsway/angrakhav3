@@ -21,7 +21,7 @@ db = client[os.environ['DB_NAME']]
 
 app = FastAPI()
 
-cors_origins = os.getenv("CORS_ORIGINS", "https://angrakha.com,https://www.angrakha.com").split(",")
+cors_origins = os.getenv("CORS_ORIGINS", "https://angarakha.com,https://www.angarakha.com,http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
@@ -538,7 +538,6 @@ async def get_collection(slug: str, sort: Optional[str] = "featured", page: int 
     elif slug == "new-arrivals":
         query["tags"] = {"$in": ["new"]}
     else:
-        # Match by occasion tag OR by category (e.g. "sherwanis" → category "sherwani")
         category_map = {"sherwanis": "sherwani", "kurtas": "kurta", "bandhgalas": "bandhgala", "jodhpuris": "jodhpuri", "nehru-jackets": "nehru_jacket"}
         cat = category_map.get(slug)
         if cat:
@@ -699,7 +698,6 @@ async def create_order(data: CheckoutCreate, request: Request):
     if data.coupon_code:
         coupon = await db.coupons.find_one({"code": data.coupon_code.upper(), "active": True})
         if coupon:
-            # Validate coupon (same logic as validate endpoint)
             valid = True
             if coupon.get("expiry_date"):
                 expiry = datetime.fromisoformat(coupon["expiry_date"].replace('Z', '+00:00'))
@@ -719,7 +717,6 @@ async def create_order(data: CheckoutCreate, request: Request):
                     discount = coupon["discount_value"]
                 discount = round(discount, 2)
                 coupon_code = coupon["code"]
-                # Increment usage count
                 await db.coupons.update_one(
                     {"code": data.coupon_code.upper()},
                     {"$inc": {"times_used": 1}}
@@ -755,13 +752,8 @@ async def create_order(data: CheckoutCreate, request: Request):
     elif guest_token:
         await db.carts.update_one({"guest_token": guest_token}, {"$set": {"items": [], "updated_at": datetime.now(timezone.utc).isoformat()}})
     
-    # Add email to order data for notifications
     order['email'] = data.email
-    
-    # Send Telegram notification
     send_order_notification_telegram(order)
-    
-    # Send order confirmation email
     await send_order_confirmation_email(order)
     
     logger.info(f"✓ Order {order_number} created successfully for {data.email}")
@@ -780,15 +772,14 @@ async def get_order(order_id: str, request: Request):
     if user:
         query["user_id"] = user["user_id"]
     order = await db.orders.find_one(query, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
 
 @api_router.get("/orders/by-number/{order_number}")
 async def get_order_by_number(order_number: str):
     """Get order by order number (for order confirmation page)"""
     order = await db.orders.find_one({"order_number": order_number}, {"_id": 0})
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    return order
-
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
@@ -928,7 +919,6 @@ async def admin_analytics(request: Request):
     total_enquiries = await db.enquiries.count_documents({})
     total_subscribers = await db.newsletter.count_documents({})
 
-    # Revenue & order stats
     orders = await db.orders.find({}, {"_id": 0, "total": 1, "status": 1, "payment_status": 1, "created_at": 1, "items": 1}).to_list(1000)
     total_revenue = sum(o.get("total", 0) for o in orders)
     avg_order_value = round(total_revenue / total_orders, 2) if total_orders else 0
@@ -938,7 +928,6 @@ async def admin_analytics(request: Request):
         s = o.get("status", "unknown")
         status_counts[s] = status_counts.get(s, 0) + 1
 
-    # Monthly revenue (last 6 months)
     from collections import defaultdict
     monthly = defaultdict(float)
     for o in orders:
@@ -948,7 +937,6 @@ async def admin_analytics(request: Request):
             monthly[month_key] += o.get("total", 0)
     monthly_data = [{"month": k, "revenue": round(v)} for k, v in sorted(monthly.items())[-6:]]
 
-    # Top products by order frequency
     product_counts = defaultdict(lambda: {"count": 0, "revenue": 0, "name": ""})
     for o in orders:
         for item in o.get("items", []):
@@ -958,7 +946,6 @@ async def admin_analytics(request: Request):
             product_counts[pid]["name"] = item.get("name", "")
     top_products = sorted(product_counts.values(), key=lambda x: x["revenue"], reverse=True)[:5]
 
-    # Recent orders
     recent = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).limit(10).to_list(10)
 
     return {
@@ -1102,7 +1089,6 @@ async def admin_create_coupon(data: CouponCreate, request: Request):
     """Create a new coupon"""
     await require_admin(request)
     
-    # Check if coupon code already exists
     existing = await db.coupons.find_one({"code": data.code.upper()})
     if existing:
         raise HTTPException(status_code=400, detail="Coupon code already exists")
@@ -1170,30 +1156,26 @@ async def validate_coupon(data: CouponValidate):
     if not coupon:
         raise HTTPException(status_code=404, detail="Invalid coupon code")
     
-    # Check expiry
     if coupon.get("expiry_date"):
         from datetime import datetime
         expiry = datetime.fromisoformat(coupon["expiry_date"].replace('Z', '+00:00'))
         if datetime.now(timezone.utc) > expiry:
             raise HTTPException(status_code=400, detail="Coupon has expired")
     
-    # Check usage limit
     if coupon.get("usage_limit") and coupon.get("times_used", 0) >= coupon["usage_limit"]:
         raise HTTPException(status_code=400, detail="Coupon usage limit reached")
     
-    # Check minimum order value
     if data.order_total < coupon.get("min_order", 0):
         raise HTTPException(
             status_code=400, 
             detail=f"Minimum order value of ₹{coupon['min_order']} required"
         )
     
-    # Calculate discount
     if coupon["discount_type"] == "percentage":
         discount = (data.order_total * coupon["discount_value"]) / 100
         if coupon.get("max_discount"):
             discount = min(discount, coupon["max_discount"])
-    else:  # fixed
+    else:
         discount = coupon["discount_value"]
     
     return {
@@ -1560,14 +1542,6 @@ app.include_router(giftcards_router)
 # ─── App Setup ─────────────────────────────────────────────────────────────────
 
 app.include_router(api_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 @app.on_event("startup")
 async def startup():
