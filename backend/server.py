@@ -25,6 +25,7 @@ from routes.cart import router as cart_router, set_db as cart_set_db, set_helper
 from routes.orders import router as orders_router, set_db as orders_set_db, set_helpers as orders_set_helpers, set_email_config as orders_set_email_config, set_notification_config as orders_set_notification_config
 from routes.public import router as public_router, set_db as public_set_db, set_helpers as public_set_helpers
 from routes.admin import router as admin_router, set_db as admin_set_db, set_helpers as admin_set_helpers
+from routes.referrals import router as referrals_router, set_db as referrals_set_db, set_helpers as referrals_set_helpers
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -106,12 +107,16 @@ public_set_helpers(require_user)
 admin_set_db(db)
 admin_set_helpers(get_current_user, require_admin)
 
+referrals_set_db(db)
+referrals_set_helpers(require_user, require_admin)
+
 app.include_router(auth_router)
 app.include_router(products_router)
 app.include_router(cart_router)
 app.include_router(orders_router)
 app.include_router(public_router)
 app.include_router(admin_router)
+app.include_router(referrals_router)
 
 # ─── App Setup ─────────────────────────────────────────────────────────────────
 
