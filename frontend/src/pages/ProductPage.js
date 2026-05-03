@@ -243,13 +243,12 @@ export default function ProductPage() {
                 {product.sizes?.map(s => {
                   const stockForSize = product.size_stock?.[s];
                   const isOutOfStock = stockForSize !== undefined && stockForSize <= 0;
-                  const isLowStock = stockForSize !== undefined && stockForSize > 0 && stockForSize <= 5;
+
                   return (
                     <button key={s} onClick={() => !isOutOfStock && setSelectedSize(s)} disabled={isOutOfStock}
                       className={`min-w-[48px] h-10 px-3 text-sm font-sans border transition-all relative ${isOutOfStock ? 'opacity-40 cursor-not-allowed line-through border-brand-border text-muted-foreground' : selectedSize === s ? 'bg-primary text-primary-foreground border-primary' : 'border-brand-border text-foreground hover:border-primary'}`}
                       data-testid={`size-btn-${s}`}>
                       {s}
-                      {isLowStock && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" title="Low stock" />}
                     </button>
                   );
                 })}
