@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import TrustBadges from '@/components/TrustBadges';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+import ProductCard from '@/components/ProductCard';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -37,6 +38,9 @@ export default function Home() {
   const [faqs, setFaqs] = useState([]);
   const [collections, setCollections] = useState([]);
 
+  // Featured products
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+
   useEffect(() => {
     // Fetch all CMS blocks + collections in parallel
     Promise.allSettled([
@@ -61,8 +65,23 @@ export default function Home() {
           to: `/collections/${c.slug}`, img: c.hero_image || ''
         }));
         setCollections(tiles.length > 0 ? tiles : FALLBACK_OCCASIONS);
+      } else {
+        setCollections(FALLBACK_OCCASIONS);
       }
     });
+
+    // Fetch featured products directly — no auth needed
+    axios.get(`${API}/products?limit=8&featured=true`)
+      .then(r => {
+        const prods = r.data.products || [];
+        // If no featured products, fall back to latest 8
+        if (prods.length === 0) {
+          return axios.get(`${API}/products?limit=8`);
+        }
+        return { data: { products: prods } };
+      })
+      .then(r => setFeaturedProducts(r.data.products || []))
+      .catch(() => {});
   }, []);
 
   const handleEnquiry = async (e) => {
@@ -112,8 +131,8 @@ export default function Home() {
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 1 }}
             className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="#occasion" className="inline-flex items-center justify-center bg-primary text-primary-foreground px-8 py-3 text-xs font-sans uppercase tracking-[0.2em] hover:bg-primary/90 transition-all duration-300" data-testid="hero-cta-shop">
-              Shop by Occasion
+            <a href="#featured" className="inline-flex items-center justify-center bg-primary text-primary-foreground px-8 py-3 text-xs font-sans uppercase tracking-[0.2em] hover:bg-primary/90 transition-all duration-300" data-testid="hero-cta-shop">
+              Shop Now
             </a>
             <a href="#contact" className="inline-flex items-center justify-center border border-white/40 text-white px-8 py-3 text-xs font-sans uppercase tracking-[0.2em] hover:bg-white/10 transition-all duration-300" data-testid="hero-cta-enquiry">
               Make an Enquiry
@@ -136,6 +155,28 @@ export default function Home() {
           <span className="marquee-text mx-12">Since Generations</span>
         </Marquee>
       </div>
+
+      {/* ─── Featured Products ─── */}
+      {featuredProducts.length > 0 && (
+        <section id="featured" className="py-16 lg:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" data-testid="featured-products-section">
+          <div className="text-center mb-12 lg:mb-16">
+            <p className="text-xs font-sans uppercase tracking-[0.2em] text-primary mb-3">New Arrivals</p>
+            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-light text-foreground">Featured Collection</h2>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6" data-testid="featured-product-grid">
+            {featuredProducts.map((p, i) => (
+              <motion.div key={p.product_id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: i * 0.05 }}>
+                <ProductCard product={p} index={i} />
+              </motion.div>
+            ))}
+          </div>
+          <div className="text-center mt-12">
+            <Link to="/collections/all" className="inline-flex items-center justify-center border border-primary text-primary px-8 py-3 text-xs font-sans uppercase tracking-[0.2em] hover:bg-primary hover:text-primary-foreground transition-all">
+              View All Products
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* ─── Shop by Occasion ─── */}
       <section id="occasion" className="py-16 lg:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" data-testid="occasion-section">
@@ -211,7 +252,7 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <p className="text-xs font-sans uppercase tracking-[0.2em] text-primary mb-3">Voices</p>
-              <h2 className="font-serif text-3xl sm:text-4xl font-light text-foreground">What Our Patrons Say</h2>
+              <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-light text-foreground">What Our Patrons Say</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
               {testimonials.map((t, i) => (
