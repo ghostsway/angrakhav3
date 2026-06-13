@@ -967,9 +967,11 @@ export default function Admin() {
   const [analytics, setAnalytics] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Redirect after auth resolves — done here so we don't return null before navigate fires
   useEffect(() => {
-    if (!authLoading && !user) navigate('/admin/login');
-    if (!authLoading && user && !user.is_admin) navigate('/');
+    if (authLoading) return;
+    if (!user) { navigate('/admin/login', { replace: true }); return; }
+    if (!user.is_admin) { navigate('/', { replace: true }); return; }
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
@@ -980,7 +982,20 @@ export default function Admin() {
     }
   }, [user]);
 
-  if (authLoading || !user?.is_admin) return null;
+  // Show a full-screen spinner while auth resolves — prevents blank screen
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-xs font-sans uppercase tracking-[0.2em] text-muted-foreground">Loading</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not admin — return null while navigate() takes effect (avoids flash)
+  if (!user?.is_admin) return null;
 
   const renderTab = () => {
     switch (tab) {
