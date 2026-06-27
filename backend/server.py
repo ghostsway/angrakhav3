@@ -44,11 +44,7 @@ app.state.limiter = limiter
 def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
     return JSONResponse(
         status_code=429,
-        content={"detail": f"Rate limit exceeded: {exc.detail}"},
-        headers={
-            "Access-Control-Allow-Origin": request.headers.get("origin") or "*",
-            "Access-Control-Allow-Credentials": "true"
-        }
+        content={"detail": f"Rate limit exceeded: {exc.detail}"}
     )
 
 cors_origins = os.getenv("CORS_ORIGINS", "https://angarakha.com,https://www.angarakha.com,http://localhost:3000").split(",")
@@ -118,6 +114,10 @@ app.include_router(public_router)
 app.include_router(admin_router)
 app.include_router(referrals_router)
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 # ─── App Setup ─────────────────────────────────────────────────────────────────
 
 @app.on_event("startup")
@@ -135,6 +135,15 @@ async def startup():
     await db.addresses.create_index("user_id")
     await db.returns.create_index("user_id")
     await db.giftcards.create_index("code", unique=True)
+    
+    # Missing indexes for performance
+    await db.orders.create_index("order_number")
+    await db.orders.create_index("user_id")
+    await db.carts.create_index("guest_token")
+    await db.carts.create_index("user_id")
+    await db.reviews.create_index("product_slug")
+    await db.coupons.create_index("code")
+    await db.referrals.create_index("user_id")
 
 @app.on_event("shutdown")
 async def shutdown():

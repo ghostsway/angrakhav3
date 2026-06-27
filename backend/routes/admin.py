@@ -81,6 +81,7 @@ async def admin_analytics(request: Request):
 @router.get("/admin/products")
 async def admin_list_products(request: Request, q: str = "", page: int = 1, limit: int = 20):
     await require_admin(request)
+    limit = min(max(1, limit), 100)
     query = {}
     if q:
         query["$or"] = [{"name": {"$regex": q, "$options": "i"}}, {"category": {"$regex": q, "$options": "i"}}]
@@ -119,14 +120,20 @@ async def admin_create_product(request: Request):
     product.pop("_id", None)
     return product
 
+PRODUCT_UPDATABLE_FIELDS = {
+    "name", "slug", "short_description", "description", "price", "compare_price",
+    "images", "category", "fabric", "color", "fit", "occasions", "sizes", "size_stock",
+    "tags", "in_stock", "featured", "care", "lining", "badges",
+}
+
 @router.put("/admin/products/{product_id}")
 async def admin_update_product(product_id: str, request: Request):
     await require_admin(request)
     body = await request.json()
-    body.pop("_id", None)
-    body.pop("product_id", None)
-    body["updated_at"] = datetime.now(timezone.utc).isoformat()
-    result = await db.products.update_one({"product_id": product_id}, {"$set": body})
+    # Only allow known fields to prevent arbitrary field injection
+    update_data = {k: v for k, v in body.items() if k in PRODUCT_UPDATABLE_FIELDS}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.products.update_one({"product_id": product_id}, {"$set": update_data})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Product not found")
     product = await db.products.find_one({"product_id": product_id}, {"_id": 0})
@@ -143,6 +150,7 @@ async def admin_delete_product(product_id: str, request: Request):
 @router.get("/admin/orders")
 async def admin_list_orders(request: Request, status: str = "", page: int = 1, limit: int = 20):
     await require_admin(request)
+    limit = min(max(1, limit), 100)
     query = {}
     if status:
         query["status"] = status
@@ -189,13 +197,18 @@ async def admin_create_collection(request: Request):
     collection.pop("_id", None)
     return collection
 
+COLLECTION_UPDATABLE_FIELDS = {
+    "name", "slug", "description", "hero_image", "occasion_tags", "featured", "sort_order"
+}
+
 @router.put("/admin/collections/{collection_id}")
 async def admin_update_collection(collection_id: str, request: Request):
     await require_admin(request)
     body = await request.json()
-    body.pop("_id", None)
-    body.pop("collection_id", None)
-    await db.collections.update_one({"collection_id": collection_id}, {"$set": body})
+    update_data = {k: v for k, v in body.items() if k in COLLECTION_UPDATABLE_FIELDS}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No valid fields provided")
+    await db.collections.update_one({"collection_id": collection_id}, {"$set": update_data})
     col = await db.collections.find_one({"collection_id": collection_id}, {"_id": 0})
     return col
 
@@ -267,6 +280,7 @@ async def admin_delete_coupon(coupon_id: str, request: Request):
 @router.get("/admin/enquiries")
 async def admin_list_enquiries(request: Request, page: int = 1, limit: int = 20):
     await require_admin(request)
+    limit = min(max(1, limit), 100)
     total = await db.enquiries.count_documents({})
     enquiries = await db.enquiries.find({}, {"_id": 0}).sort("created_at", -1).skip((page-1)*limit).limit(limit).to_list(limit)
     return {"enquiries": enquiries, "total": total}
@@ -284,20 +298,26 @@ async def admin_list_cms(request: Request):
     blocks = await db.cms.find({}, {"_id": 0}).to_list(50)
     return {"blocks": blocks}
 
+CMS_UPDATABLE_FIELDS = {
+    "key", "title", "content", "images", "active", "metadata", "type"
+}
+
 @router.put("/admin/cms/{key}")
 async def admin_update_cms(key: str, request: Request):
     await require_admin(request)
     body = await request.json()
-    body.pop("_id", None)
-    await db.cms.update_one({"key": key}, {"$set": body}, upsert=True)
+    update_data = {k: v for k, v in body.items() if k in CMS_UPDATABLE_FIELDS}
+    update_data["key"] = key
+    await db.cms.update_one({"key": key}, {"$set": update_data}, upsert=True)
     block = await db.cms.find_one({"key": key}, {"_id": 0})
     return block
 
 @router.get("/admin/customers")
 async def admin_list_customers(request: Request, page: int = 1, limit: int = 20):
     await require_admin(request)
+    limit = min(max(1, limit), 100)
     total = await db.users.count_documents({})
-    customers = await db.users.find({}, {"_id": 0}).sort("created_at", -1).skip((page-1)*limit).limit(limit).to_list(limit)
+    customers = await db.users.find({}, {"_id": 0, "session_token": 0, "password_hash": 0}).sort("created_at", -1).skip((page-1)*limit).limit(limit).to_list(limit)
     return {"customers": customers, "total": total}
 
 @router.get("/admin/newsletter")

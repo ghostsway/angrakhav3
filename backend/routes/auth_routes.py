@@ -1,7 +1,7 @@
 import uuid
 import httpx
 from fastapi import APIRouter, Request, Response, HTTPException
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 router = APIRouter(prefix="/api")
 
@@ -69,7 +69,7 @@ async def exchange_session(request: Request, response: Response):
     await db.user_sessions.delete_many({"user_id": user_id})
     await db.user_sessions.insert_one({
         "user_id": user_id, "session_token": session_token,
-        "expires_at": datetime.now(timezone.utc).replace(day=datetime.now(timezone.utc).day) + __import__('datetime').timedelta(days=7),
+        "expires_at": datetime.now(timezone.utc) + timedelta(days=7),
         "created_at": datetime.now(timezone.utc)
     })
     response.set_cookie(key="session_token", value=session_token, httponly=True, secure=True, samesite="none", path="/", max_age=7*24*60*60)
@@ -91,11 +91,13 @@ async def logout(request: Request, response: Response):
     response.delete_cookie("session_token", path="/")
     return {"status": "ok"}
 
+from utils.limiter import limiter
+
 @router.post("/admin/login")
+@limiter.limit("5/minute")
 async def admin_login(request: Request, response: Response):
     import os
     import bcrypt
-    from pydantic import BaseModel
     
     body = await request.json()
     username = body.get("username")
@@ -132,18 +134,21 @@ async def admin_login(request: Request, response: Response):
     if not admin_user:
         await db.users.insert_one({
             "user_id": admin_id, "email": f"{username}@admin.local", "name": "Admin", "picture": "",
-            "phone": "", "addresses": [], "created_at": datetime.now(timezone.utc), "role": "admin"
+            "phone": "", "addresses": [], "created_at": datetime.now(timezone.utc),
+            "role": "admin", "is_admin": True
         })
     else:
-        # Make sure role is set
-        if "role" not in admin_user or admin_user["role"] != "admin":
-            await db.users.update_one({"user_id": admin_user["user_id"]}, {"$set": {"role": "admin"}})
+        # Ensure both role and is_admin are set
+        await db.users.update_one(
+            {"user_id": admin_user["user_id"]},
+            {"$set": {"role": "admin", "is_admin": True}}
+        )
         admin_id = admin_user["user_id"]
         
     await db.user_sessions.delete_many({"user_id": admin_id})
     await db.user_sessions.insert_one({
         "user_id": admin_id, "session_token": session_token,
-        "expires_at": datetime.now(timezone.utc).replace(day=datetime.now(timezone.utc).day) + __import__('datetime').timedelta(days=7),
+        "expires_at": datetime.now(timezone.utc) + timedelta(days=7),
         "created_at": datetime.now(timezone.utc)
     })
     

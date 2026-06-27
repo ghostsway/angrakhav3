@@ -46,7 +46,7 @@ export default function CartPage() {
 
                   <div className="flex items-center justify-between mt-4">
                     <div className="flex items-center border border-brand-border">
-                      <button onClick={() => updateItem(item.item_id, item.quantity - 1)} className="p-1.5 hover:bg-brand-surface transition-colors" data-testid={`cart-minus-${item.item_id}`}>
+                      <button onClick={() => updateItem(item.item_id, Math.max(1, item.quantity - 1))} className={`p-1.5 transition-colors ${item.quantity <= 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-surface'}`} disabled={item.quantity <= 1} data-testid={`cart-minus-${item.item_id}`}>
                         <Minus className="w-3 h-3" />
                       </button>
                       <span className="w-8 text-center text-sm font-sans">{item.quantity}</span>

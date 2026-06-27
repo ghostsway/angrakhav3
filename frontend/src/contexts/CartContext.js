@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 
@@ -8,7 +8,7 @@ const CartContext = createContext(null);
 function getGuestToken() {
   let token = localStorage.getItem('guest_token');
   if (!token) {
-    token = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    token = `guest_${crypto.randomUUID()}`;
     localStorage.setItem('guest_token', token);
   }
   return token;
@@ -67,8 +67,8 @@ export function CartProvider({ children }) {
     setCart(res.data);
   };
 
-  const itemCount = (cart.items || []).reduce((sum, i) => sum + i.quantity, 0);
-  const subtotal = (cart.items || []).reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const itemCount = useMemo(() => (cart.items || []).reduce((sum, i) => sum + i.quantity, 0), [cart.items]);
+  const subtotal = useMemo(() => (cart.items || []).reduce((sum, i) => sum + i.price * i.quantity, 0), [cart.items]);
 
   return (
     <CartContext.Provider value={{ cart, loading, addItem, updateItem, removeItem, fetchCart, itemCount, subtotal }}>

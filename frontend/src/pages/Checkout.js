@@ -14,7 +14,6 @@ export default function Checkout() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
-  const [orderComplete, setOrderComplete] = useState(null);
   const [form, setForm] = useState({
     name: user?.name || '', email: user?.email || '', phone: '',
     address_line1: '', address_line2: '', city: '', state: '', pincode: '',
@@ -68,6 +67,21 @@ export default function Checkout() {
       toast.error('Please fill in all required fields');
       return;
     }
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
+    if (!/^\+?[0-9]{10,15}$/.test(form.phone.replace(/[\s-]/g, ''))) {
+      toast.error('Please enter a valid phone number');
+      return;
+    }
+    
+    if (!/^[1-9][0-9]{5}$/.test(form.pincode.replace(/\s/g, ''))) {
+      toast.error('Please enter a valid 6-digit PIN code');
+      return;
+    }
     setSubmitting(true);
     try {
       // Mock payment
@@ -90,43 +104,11 @@ export default function Checkout() {
     } finally { setSubmitting(false); }
   };
 
-  if (items.length === 0 && !orderComplete) {
+  if (items.length === 0) {
     return (
       <div className="py-20 text-center" data-testid="checkout-empty">
         <p className="font-serif text-2xl text-foreground mb-4">Your cart is empty</p>
         <Link to="/collections" className="text-sm font-sans text-primary hover:underline">Browse collections</Link>
-      </div>
-    );
-  }
-
-  if (orderComplete) {
-    return (
-      <div className="py-20 text-center max-w-xl mx-auto px-4" data-testid="order-confirmation">
-        <CheckCircle className="w-16 h-16 text-primary mx-auto mb-6" strokeWidth={1} />
-        <h1 className="font-serif text-3xl sm:text-4xl font-light text-foreground mb-3">Order Confirmed</h1>
-        <p className="text-sm font-sans text-muted-foreground mb-2">Order number: <span className="text-primary font-medium">{orderComplete.order_number}</span></p>
-        <p className="text-sm font-sans text-muted-foreground mb-8">
-          A confirmation has been sent to {orderComplete.guest_email}. Thank you for choosing Angarakha.
-        </p>
-        <div className="bg-brand-surface border border-brand-border p-6 mb-8 text-left">
-          <h3 className="text-xs font-sans uppercase tracking-[0.2em] text-primary mb-4">Order Summary</h3>
-          {orderComplete.items?.map((item, i) => (
-            <div key={i} className="flex justify-between text-sm font-sans py-2 border-b border-brand-border/50">
-              <span className="text-foreground">{item.name} (x{item.quantity})</span>
-              <span className="text-muted-foreground">Rs {(item.price * item.quantity).toLocaleString('en-IN')}</span>
-            </div>
-          ))}
-          <div className="flex justify-between text-sm font-sans pt-3 mt-1">
-            <span className="font-medium text-foreground">Total</span>
-            <span className="font-serif text-lg text-primary">Rs {orderComplete.total?.toLocaleString('en-IN')}</span>
-          </div>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link to="/" className="bg-primary text-primary-foreground px-6 py-3 text-xs font-sans uppercase tracking-[0.2em] hover:bg-primary/90 transition-all" data-testid="order-go-home">Back to Home</Link>
-          {user && (
-            <Link to="/account/orders" className="border border-primary text-primary px-6 py-3 text-xs font-sans uppercase tracking-[0.2em] hover:bg-primary hover:text-primary-foreground transition-all" data-testid="order-view-orders">View Orders</Link>
-          )}
-        </div>
       </div>
     );
   }

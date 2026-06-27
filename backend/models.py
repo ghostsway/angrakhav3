@@ -20,14 +20,14 @@ class CartItemAdd(BaseModel):
     image: str
     size: str
     color: Optional[str] = ""
-    price: float
-    quantity: int = 1
+    price: float = Field(..., ge=0)
+    quantity: int = Field(1, ge=1)
 
 
 class CouponCreate(BaseModel):
     code: str
     discount_type: str  # 'percentage' or 'fixed'
-    discount_value: float
+    discount_value: float = Field(..., ge=0)
     min_order: float = 0
     max_discount: Optional[float] = None
     expiry_date: Optional[str] = None
@@ -39,7 +39,7 @@ class CouponValidate(BaseModel):
     order_total: float
 
 class CartItemUpdate(BaseModel):
-    quantity: int
+    quantity: int = Field(..., ge=1)
 
 class CheckoutCreate(BaseModel):
     email: str
@@ -54,7 +54,7 @@ class CheckoutCreate(BaseModel):
     coupon_code: Optional[str] = None
 
 class ReviewCreate(BaseModel):
-    rating: int
+    rating: int = Field(..., ge=1, le=5)
     title: str
     body: str
     fit_feedback: Optional[str] = ""

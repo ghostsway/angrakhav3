@@ -91,10 +91,6 @@ export default function CollectionPage() {
             {/* Toolbar */}
             <div className="flex items-center justify-between mb-6" data-testid="collection-toolbar">
               <p className="text-sm font-sans text-muted-foreground">{total} product{total !== 1 ? 's' : ''}</p>
-              {/* Mobile filter trigger is inside FilterSidebar */}
-              <div className="lg:hidden">
-                <FilterSidebar onFilter={handleFilter} activeFilters={filters} />
-              </div>
             </div>
 
             {/* Product Grid */}

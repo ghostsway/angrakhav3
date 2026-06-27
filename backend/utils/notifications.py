@@ -39,7 +39,9 @@ except Exception as e:
     RAZORPAY_ENABLED = False
     logger.warning(f"⚠ Razorpay not available: {e}")
 
-def send_order_notification_telegram(order_data):
+import asyncio
+
+async def send_order_notification_telegram(order_data):
     """Send Telegram notification when a new order is placed"""
     try:
         bot_token = os.getenv('TELEGRAM_BOT_TOKEN', 'your_telegram_bot_token')
@@ -89,7 +91,7 @@ Payment: {order_data['payment_method'].upper()}
                 "text": message,
                 "parse_mode": "Markdown"
             }
-            response = requests.post(url, json=payload, timeout=10)
+            response = await asyncio.to_thread(requests.post, url, json=payload, timeout=10)
             
             if response.status_code == 200:
                 logger.info(f"✓ Telegram notification sent successfully to chat {chat_id}")

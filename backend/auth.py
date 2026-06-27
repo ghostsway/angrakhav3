@@ -22,6 +22,7 @@ async def get_current_user(request: Request):
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
     if expires_at < datetime.now(timezone.utc):
+        await db.user_sessions.delete_one({"session_token": token})
         return None
     user = await db.users.find_one({"user_id": session["user_id"]}, {"_id": 0})
     return user

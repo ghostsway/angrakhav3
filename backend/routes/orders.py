@@ -39,6 +39,19 @@ async def create_order(data: CheckoutCreate, request: Request):
         raise HTTPException(status_code=400, detail="No cart found")
     if not cart or not cart.get("items"):
         raise HTTPException(status_code=400, detail="Cart is empty")
+    
+    # Validate stock availability for each item and enforce DB prices
+    for item in cart["items"]:
+        product = await db.products.find_one({"product_id": item["product_id"]}, {"_id": 0})
+        if not product:
+            raise HTTPException(status_code=400, detail=f"Product '{item.get('name', 'unknown')}' is no longer available")
+        if product.get("in_stock") is False:
+            raise HTTPException(status_code=400, detail=f"'{product['name']}' is currently out of stock")
+        size_stock = product.get("size_stock", {})
+        if item.get("size") in size_stock and size_stock[item["size"]] < item["quantity"]:
+            raise HTTPException(status_code=400, detail=f"'{product['name']}' size {item['size']} only has {size_stock[item['size']]} left in stock")
+        item["price"] = product.get("price", 0) # Enforce server-side price
+
     items = cart["items"]
     subtotal = sum(i["price"] * i["quantity"] for i in items)
     tax = round(subtotal * 0.18, 2)
@@ -80,6 +93,7 @@ async def create_order(data: CheckoutCreate, request: Request):
         "order_id": f"order_{uuid.uuid4().hex[:12]}",
         "order_number": order_number,
         "user_id": user["user_id"] if user else None,
+        "guest_token": guest_token if not user else None,
         "guest_email": data.email,
         "customer_name": data.name,
         "phone": data.phone,
@@ -99,14 +113,32 @@ async def create_order(data: CheckoutCreate, request: Request):
     }
     await db.orders.insert_one(order)
     order.pop("_id", None)
+    
+    # Decrement stock
+    for item in items:
+        size = item.get("size")
+        quantity = item.get("quantity")
+        if size:
+            await db.products.update_one(
+                {"product_id": item["product_id"]},
+                {"$inc": {f"size_stock.{size}": -quantity}}
+            )
+
     if user:
         await db.carts.update_one({"user_id": user["user_id"]}, {"$set": {"items": [], "updated_at": datetime.now(timezone.utc).isoformat()}})
     elif guest_token:
         await db.carts.update_one({"guest_token": guest_token}, {"$set": {"items": [], "updated_at": datetime.now(timezone.utc).isoformat()}})
     
+    # Send notifications — failures should not break the checkout response
     order['email'] = data.email
-    send_order_notification_telegram(order)
-    await send_order_confirmation_email(order)
+    try:
+        await send_order_notification_telegram(order)
+    except Exception as e:
+        logger.error(f"Telegram notification failed for {order_number}: {e}")
+    try:
+        await send_order_confirmation_email(order)
+    except Exception as e:
+        logger.error(f"Email notification failed for {order_number}: {e}")
     
     logger.info(f"✓ Order {order_number} created successfully for {data.email}")
     return order
@@ -120,21 +152,58 @@ async def list_orders(request: Request):
 @router.get("/orders/{order_id}")
 async def get_order(order_id: str, request: Request):
     user = await get_current_user(request)
+    guest_token = get_guest_token(request)
+    if not user and not guest_token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+        
     query = {"order_id": order_id}
     if user:
         query["user_id"] = user["user_id"]
+    else:
+        query["guest_token"] = guest_token
+        
     order = await db.orders.find_one(query, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
 
 @router.get("/orders/by-number/{order_number}")
-async def get_order_by_number(order_number: str):
-    """Get order by order number (for order confirmation page)"""
-    order = await db.orders.find_one({"order_number": order_number}, {"_id": 0})
+async def get_order_by_number(order_number: str, request: Request):
+    """Get order by order number (for order confirmation page).
+    Requires authentication or matching guest token."""
+    user = await get_current_user(request)
+    guest_token = get_guest_token(request)
+    
+    if not user and not guest_token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    query = {"order_number": order_number}
+    if user:
+        query["user_id"] = user["user_id"]
+    else:
+        query["guest_token"] = guest_token
+
+    order = await db.orders.find_one(query, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    return order
+    # Strip sensitive PII — this endpoint is unauthenticated
+    safe_order = {
+        "order_id": order.get("order_id"),
+        "order_number": order.get("order_number"),
+        "items": order.get("items", []),
+        "subtotal": order.get("subtotal"),
+        "tax": order.get("tax"),
+        "shipping": order.get("shipping"),
+        "discount": order.get("discount"),
+        "coupon_code": order.get("coupon_code"),
+        "total": order.get("total"),
+        "status": order.get("status"),
+        "payment_method": order.get("payment_method"),
+        "created_at": order.get("created_at"),
+        # Include first name only for display
+        "customer_name": (order.get("customer_name") or "").split()[0] if order.get("customer_name") else "",
+    }
+    return safe_order
 
 @router.post("/payment/create-order")
 async def create_payment_order(request: Request):
